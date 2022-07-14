@@ -309,12 +309,11 @@ contract("vRouter", (accounts) => {
     poolReserveRatio = fromWeiToNumber(poolReserveRatio);
 
     assert.equal(
-      poolReserveRatio,
+      (poolReserveRatio / 1000).toFixed(3) * 1,
       reserveRatioPCT,
       "Pool reserve ratio is not equal to calculated in test"
     );
   });
-
 
   // it("Should add liquidity", async () => {
   //   let amountADesired = web3.utils.toWei("1", "ether");
