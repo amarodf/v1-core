@@ -251,8 +251,6 @@ contract vPair is IvPair, vSwapERC20 {
         address to,
         bytes calldata data
     ) external override lock {
-        require(this.calculateReserveRatio() < max_reserve_ratio, "PTE"); // POOL Threshold exceeded
-
         VirtualPoolModel memory vPool = getVirtualPool(ikPair);
 
         // validate ikPair with factory
@@ -295,7 +293,7 @@ contract vPair is IvPair, vSwapERC20 {
                     : vSwapMath.quote(amountOut, reserve1, reserve0)
             );
 
-        require(this.calculateReserveRatio() < max_reserve_ratio, "TBPT"); //Trade beyond pool threshold
+        require(this.calculateReserveRatio() < max_reserve_ratio, "TBPT"); // reserve amount goes beyond pool threshold
 
         _update(
             IERC20(token0).balanceOf(address(this)),
