@@ -26,6 +26,7 @@ contract vPair is IvPair, vSwapERC20 {
 
     address[] public whitelist;
     mapping(address => bool) public whitelistAllowance;
+    uint256 public override max_whitelist_count;
 
     mapping(address => uint256) public reserveRatio;
     mapping(address => uint256) reserves;
@@ -61,6 +62,7 @@ contract vPair is IvPair, vSwapERC20 {
         fee = _fee;
         vFee = _vFee;
         max_reserve_ratio = maxReserveRatio;
+        max_whitelist_count = 8;
     }
 
     function _update(uint256 balance0, uint256 balance1) private {
@@ -152,7 +154,7 @@ contract vPair is IvPair, vSwapERC20 {
         }
     }
 
-    function exchangeReserve(
+    function swapNativeToReserve(
         uint256 amountOut,
         address ikPair,
         address to,
@@ -243,7 +245,7 @@ contract vPair is IvPair, vSwapERC20 {
         vPool.commonToken = vPoolTokens.ik1;
     }
 
-    function swapReserves(
+    function swapReserveToNative(
         uint256 amountOut,
         address ikPair,
         address to,
@@ -324,7 +326,7 @@ contract vPair is IvPair, vSwapERC20 {
             );
         }
 
-        // deduct reserve ratio from liquidity
+        // // deduct reserve ratio from liquidity
         // liquidity = vSwapMath.deductReserveRatioFromLP(
         //     liquidity,
         //     this.calculateReserveRatio()
@@ -380,7 +382,7 @@ contract vPair is IvPair, vSwapERC20 {
         override
         onlyFactoryAdmin
     {
-        require(_whitelist.length <= 8, "MW");
+        require(_whitelist.length < max_whitelist_count, "MW");
 
         address[] memory _oldWL = whitelist;
 
@@ -414,5 +416,13 @@ contract vPair is IvPair, vSwapERC20 {
         onlyFactoryAdmin
     {
         max_reserve_ratio = threshold;
+    }
+
+    function setMaxWhitelistCount(uint256 maxWhitelist)
+        external
+        override
+        onlyFactoryAdmin
+    {
+        max_whitelist_count = maxWhitelist;
     }
 }

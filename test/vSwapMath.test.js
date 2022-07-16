@@ -4,6 +4,7 @@ const vPairFactory = artifacts.require("vPairFactory");
 const vSwapMath = artifacts.require("vSwapMath");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const { assert } = require("chai");
 const { catchRevert } = require("./exceptions");
 
 async function getFutureBlockTimestamp() {
@@ -190,145 +191,262 @@ contract("vSwapMath", (accounts) => {
     console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
   });
 
-  it("Should calculate reserve ratio delta", async () => {
-    const address = await vPairFactoryInstance.getPair(
-      tokenA.address,
+  async function addCToPoolAB() {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenC.address,
       tokenB.address
     );
 
-    const pool = await vPair.at(address);
-    const baseReserve = await pool.reserve0();
-    const rRatio = 0;
-    _rReserve = web3.utils.toWei("10", "ether");
-
-    const reserveRatio = await vSwapMathInstance.calculateReserveRatio(
-      0,
-      _rReserve,
-      baseReserve
-    );
-
-    assert(reserveRatio > 0, "Wrong reserve ratio calculation");
-  });
-
-  it("Should deduct reserve ratio from lp tokens issue", async () => {
-    const lpTokens = await vSwapMathInstance.deductReserveRatioFromLP(
-      web3.utils.toWei("100", "ether"),
-      web3.utils.toWei("3000", "ether")
-    );
-
-    assert(
-      lpTokens == web3.utils.toWei("97", "ether"),
-      "Wrong lp tokens deduction"
-    );
-  });
-
-  it("Should (amountIn(amountOut(x)) = x)", async () => {
-    const X = web3.utils.toWei("3", "ether");
-    const fee = 997;
-
-    const address = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-
-    const pool = await vPair.at(address);
-
-    const reserve0 = await pool.reserve0();
-    const reserve1 = await pool.reserve1();
-
-    const amountIn = await vSwapMathInstance.getAmountIn(
-      X,
-      reserve0,
-      reserve1,
-      fee
-    );
-
-    const amountOut = await vSwapMathInstance.getAmountOut(
-      amountIn,
-      reserve0,
-      reserve1,
-      fee
-    );
-
-    assert.equal(amountOut, X, "Invalid getAmountIn / getAmountOut");
-  });
-
-  it("Should sort pool reserves", async () => {
-    const address = await vPairFactoryInstance.getPair(
+    const jkPair = await vPairFactoryInstance.getPair(
       tokenB.address,
       tokenA.address
     );
 
+    let amountOut = web3.utils.toWei("105", "ether");
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
+
+    const pool = await vPair.at(jkPair);
+
+    const futureTs = await getFutureBlockTimestamp();
+
+    let tokenCReserve = await pool.reserveRatio(tokenC.address);
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountOut],
+      [ikPair],
+      tokenC.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+  }
+
+  async function addDToPoolAB() {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenD.address,
+      tokenB.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    let amountOut = web3.utils.toWei("290", "ether");
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
+
+    const pool = await vPair.at(jkPair);
+
+    const futureTs = await getFutureBlockTimestamp();
+
+    let tokenDReserve = await pool.reserveRatio(tokenD.address);
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountOut],
+      [ikPair],
+      tokenD.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+  }
+
+  it("Should deduct reserve ratio from lp tokens issue", async () => {
+    const address = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+
     const pool = await vPair.at(address);
 
-    let poolReserves = await pool.getReserves();
     let poolToken0 = await pool.token0();
     let poolToken1 = await pool.token1();
 
-    let reserves = await vSwapMathInstance.sortReserves(
-      poolToken0,
-      poolToken0,
-      poolReserves._reserve0,
-      poolReserves._reserve1
+    let token0 = await ERC20.at(poolToken0);
+    let token1 = await ERC20.at(poolToken1);
+
+    let poolReserve0 = await pool.reserve0();
+    let poolReserve1 = await pool.reserve1();
+
+    let balance0 = await token0.balanceOf(pool.address);
+    let balance1 = await token1.balanceOf(pool.address);
+
+    poolReserve0 = fromWeiToNumber(poolReserve0);
+    poolReserve1 = fromWeiToNumber(poolReserve1);
+
+    balance0 = fromWeiToNumber(balance0);
+    balance1 = fromWeiToNumber(balance1);
+
+    balance0 = balance0 + 30;
+    balance1 = balance1 + 10;
+
+    let amount0 = balance0 - poolReserve0;
+    let amount1 = balance1 - poolReserve1;
+
+    let _totalSupply = await pool.totalSupply();
+
+    _totalSupply = fromWeiToNumber(_totalSupply);
+
+    let liquidity = Math.min(
+      (amount0 * _totalSupply) / poolReserve0,
+      (amount1 * _totalSupply) / poolReserve1
     );
 
-    assert.equal(
-      fromWeiToNumber(poolReserves._reserve0),
-      fromWeiToNumber(reserves._reserve0),
-      "Reserve not in order"
+    await addCToPoolAB();
+    await addDToPoolAB();
+
+    let reserveRatio = await pool.calculateReserveRatio();
+
+    let lpTokens = await vSwapMathInstance.deductReserveRatioFromLP(
+      web3.utils.toWei(liquidity.toString(), "ether"),
+      reserveRatio
     );
 
-    let reserves2 = await vSwapMathInstance.sortReserves(
-      poolToken1,
-      poolToken0,
-      poolReserves._reserve0,
-      poolReserves._reserve1
-    );
+    lpTokens = fromWeiToNumber(lpTokens);
+    let inversedReserveRatio = 1 - fromWeiToNumber(reserveRatio) / 100000;
+    let deductedL = (liquidity * inversedReserveRatio).toFixed(2);
+    let roundedLpTokens = (lpTokens * 1).toFixed(2);
 
-    assert.equal(
-      fromWeiToNumber(poolReserves._reserve1),
-      fromWeiToNumber(reserves2._reserve0),
-      "Reserve 2 not in order"
-    );
-
-  
+    assert.equal(deductedL, roundedLpTokens);
   });
 
-  it("Should find common token and assing to ik1 and jk1", async () => {
-    let tokens = await vSwapMathInstance.findCommonToken(
-      tokenA.address,
-      tokenB.address,
-      tokenC.address,
-      tokenB.address
-    );
+  // it("Should reserve ratio is larger than 0", async () => {
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
 
-    assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+  //   const pool = await vPair.at(address);
+  //   const baseReserve = await pool.reserve0();
+  //   const rRatio = 0;
+  //   _rReserve = web3.utils.toWei("10", "ether");
 
-    tokens = await vSwapMathInstance.findCommonToken(
-      tokenB.address,
-      tokenA.address,
-      tokenA.address,
-      tokenC.address
-    );
+  //   const reserveRatio = await vSwapMathInstance.calculateReserveRatio(
+  //     0,
+  //     _rReserve,
+  //     baseReserve
+  //   );
 
-    assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+  //   assert(reserveRatio > 0, "Wrong reserve ratio calculation");
+  // });
 
-    tokens = await vSwapMathInstance.findCommonToken(
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      tokenC.address
-    );
+  // it("Should (amountIn(amountOut(x)) = x)", async () => {
+  //   const X = web3.utils.toWei("3", "ether");
+  //   const fee = 997;
 
-    assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
 
-    tokens = await vSwapMathInstance.findCommonToken(
-      tokenC.address,
-      tokenA.address,
-      tokenC.address,
-      tokenB.address
-    );
+  //   const pool = await vPair.at(address);
 
-    assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
-  });
+  //   const reserve0 = await pool.reserve0();
+  //   const reserve1 = await pool.reserve1();
+
+  //   const amountIn = await vSwapMathInstance.getAmountIn(
+  //     X,
+  //     reserve0,
+  //     reserve1,
+  //     fee
+  //   );
+
+  //   const amountOut = await vSwapMathInstance.getAmountOut(
+  //     amountIn,
+  //     reserve0,
+  //     reserve1,
+  //     fee
+  //   );
+
+  //   assert.equal(amountOut, X, "Invalid getAmountIn / getAmountOut");
+  // });
+
+  // it("Should sort pool reserves", async () => {
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenA.address
+  //   );
+
+  //   const pool = await vPair.at(address);
+
+  //   let poolReserves = await pool.getReserves();
+  //   let poolToken0 = await pool.token0();
+  //   let poolToken1 = await pool.token1();
+
+  //   let reserves = await vSwapMathInstance.sortReserves(
+  //     poolToken0,
+  //     poolToken0,
+  //     poolReserves._reserve0,
+  //     poolReserves._reserve1
+  //   );
+
+  //   assert.equal(
+  //     fromWeiToNumber(poolReserves._reserve0),
+  //     fromWeiToNumber(reserves._reserve0),
+  //     "Reserve not in order"
+  //   );
+
+  //   let reserves2 = await vSwapMathInstance.sortReserves(
+  //     poolToken1,
+  //     poolToken0,
+  //     poolReserves._reserve0,
+  //     poolReserves._reserve1
+  //   );
+
+  //   assert.equal(
+  //     fromWeiToNumber(poolReserves._reserve1),
+  //     fromWeiToNumber(reserves2._reserve0),
+  //     "Reserve 2 not in order"
+  //   );
+  // });
+
+  // it("Should find common token and assing to ik1 and jk1", async () => {
+  //   let tokens = await vSwapMathInstance.findCommonToken(
+  //     tokenA.address,
+  //     tokenB.address,
+  //     tokenC.address,
+  //     tokenB.address
+  //   );
+
+  //   assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+
+  //   tokens = await vSwapMathInstance.findCommonToken(
+  //     tokenB.address,
+  //     tokenA.address,
+  //     tokenA.address,
+  //     tokenC.address
+  //   );
+
+  //   assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+
+  //   tokens = await vSwapMathInstance.findCommonToken(
+  //     tokenC.address,
+  //     tokenA.address,
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+
+  //   tokens = await vSwapMathInstance.findCommonToken(
+  //     tokenC.address,
+  //     tokenA.address,
+  //     tokenC.address,
+  //     tokenB.address
+  //   );
+
+  //   assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
+  // });
 });

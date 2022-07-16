@@ -7,7 +7,7 @@ const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 
 contract("vRouter", (accounts) => {
   function fromWeiToNumber(number) {
-    return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
+      return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
   }
 
   async function getFutureBlockTimestamp() {

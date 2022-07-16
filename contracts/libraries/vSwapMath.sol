@@ -4,8 +4,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../types.sol";
 
 library vSwapMath {
-    uint256 constant EPSILON = 1 wei;
+    uint256 private constant EPSILON = 1 wei;
     uint256 private constant RESERVE_RATIO_FACTOR = 1000;
+    uint256 private constant DEDUCT_FACTOR = 100000 * 1e18;
 
     //find common token and assign to ikToken1 and jkToken1
     function findCommonToken(
@@ -120,8 +121,7 @@ library vSwapMath {
         pure
         returns (uint256 lpAmount)
     {
-        uint256 factor = 100000 * 1e18;
-        uint256 numerator = _liquidity * (factor - _reserveRatio);
-        lpAmount = numerator / factor;
+        uint256 numerator = _liquidity * (DEDUCT_FACTOR - _reserveRatio);
+        lpAmount = numerator / DEDUCT_FACTOR;
     }
 }

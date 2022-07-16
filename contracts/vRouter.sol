@@ -7,13 +7,12 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "./types.sol";
-import "./base/vRouterVirtualPools.sol";
 import "./libraries/vSwapMath.sol";
 import "./interfaces/IvPair.sol";
 import "./interfaces/IvRouter.sol";
 import "./interfaces/IvPairFactory.sol";
 
-contract vRouter is IvRouter, vRouterVirtualPools {
+contract vRouter is IvRouter {
     address public override factory;
     address public immutable override owner;
     address public immutable override WETH;
@@ -72,7 +71,7 @@ contract vRouter is IvRouter, vRouterVirtualPools {
                     amountsIn[i]
                 );
 
-                IvPair(pools[i]).swapReserves(
+                IvPair(pools[i]).swapReserveToNative(
                     amountsOut[i],
                     iks[i],
                     to,
@@ -394,6 +393,72 @@ contract vRouter is IvRouter, vRouterVirtualPools {
         SafeERC20.safeTransfer(IERC20(token), to, amountToken);
         IWETH(WETH).withdraw(amountETH);
         TransferHelper.safeTransferETH(to, amountETH);
+    }
+
+    function getVirtualAmountIn(
+        address jkPair,
+        address ikPair,
+        uint256 amountOut
+    ) external view override returns (uint256 amountIn) {
+        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
+
+        return
+            vSwapMath.getAmountIn(
+                amountOut,
+                vPool.reserve0,
+                vPool.reserve1,
+                IvPair(jkPair).vFee()
+            );
+    }
+
+    function getVirtualPool(address jkPair, address ikPair)
+        external
+        view
+        override
+        returns (VirtualPoolModel memory vPool)
+    {
+        (address ik0, address ik1) = IvPair(ikPair).getTokens();
+
+        (address jk0, address jk1) = IvPair(jkPair).getTokens();
+
+        VirtualPoolTokens memory vPoolTokens = vSwapMath.findCommonToken(
+            ik0,
+            ik1,
+            jk0,
+            jk1
+        );
+
+        require(vPoolTokens.ik1 == vPoolTokens.jk1, "IOP");
+
+        (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
+        (uint256 jkReserve0, uint256 jkReserve1) = IvPair(jkPair).getReserves();
+
+        vPool = vSwapMath.calculateVPool(
+            vPoolTokens.ik0 == ik0 ? ikReserve0 : ikReserve1,
+            vPoolTokens.ik0 == ik0 ? ikReserve1 : ikReserve0,
+            vPoolTokens.jk0 == jk0 ? jkReserve0 : jkReserve1,
+            vPoolTokens.jk0 == jk0 ? jkReserve1 : jkReserve0
+        );
+
+        vPool.token0 = vPoolTokens.ik0;
+        vPool.token1 = vPoolTokens.jk0;
+        vPool.commonToken = vPoolTokens.ik1;
+    }
+
+    function getVirtualAmountOut(
+        address jkPair,
+        address ikPair,
+        uint256 amountIn
+    ) external view override returns (uint256 amountOut) {
+        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
+
+        return
+            vSwapMath.getAmountOut(
+                amountIn,
+                vPool.reserve0,
+                vPool.reserve1,
+                996
+            );
     }
 
     function quote(

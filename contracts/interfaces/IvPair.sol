@@ -27,14 +27,14 @@ interface IvPair {
         bytes calldata data
     ) external;
 
-    function swapReserves(
+    function swapReserveToNative(
         uint256 amountOut,
         address ikPair,
         address to,
         bytes calldata data
     ) external;
 
-    function exchangeReserve(
+    function swapNativeToReserve(
         uint256 amountOut,
         address ikPair,
         address to,
@@ -49,6 +49,8 @@ interface IvPair {
 
     function setWhitelist(address[] memory _whitelist) external;
 
+    function setMaxWhitelistCount(uint256 maxWhitelist) external;
+
     function calculateReserveRatio() external view returns (uint256 rRatio);
 
     function setMaxReserveThreshold(uint256 threshold) external;
@@ -60,6 +62,8 @@ interface IvPair {
     function reserve0() external view returns (uint256);
 
     function reserve1() external view returns (uint256);
+
+    function max_whitelist_count() external view returns (uint256);
 
     function getReserves()
         external
