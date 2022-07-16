@@ -2,8 +2,14 @@ const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapMath = artifacts.require("vSwapMath");
-const { catchRevert } = require("./exceptions");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
+const { solidity } = require("ethereum-waffle");
+const chai = require("chai");
+const catchRevert = require("./exceptions");
+const { assert } = require("chai");
+
+chai.use(solidity);
+const { expect } = chai;
 
 contract("ReserveRatio", (accounts) => {
   function fromWeiToNumber(number) {
@@ -364,8 +370,44 @@ contract("ReserveRatio", (accounts) => {
     expect(Number(poolReserve1Before.toString())).to.lessThan(
       Number(poolReserve1After.toString())
     );
+  });
 
-    let lpBalance = await pool.balanceOf(accounts[0]);
-    console.log('lpBalance: ' + fromWeiToNumber(lpBalance));
+  it("Should revert a transaction that goes beyod reserve ratio", async () => {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenD.address,
+      tokenB.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    let amountOut = web3.utils.toWei("1500", "ether");
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
+
+    const futureTs = await getFutureBlockTimestamp();
+    let reverted = false;
+    try {
+      let swapTx = await vRouterInstance.swap(
+        [jkPair],
+        [amountIn],
+        [amountOut],
+        [ikPair],
+        tokenD.address,
+        tokenA.address,
+        accounts[0],
+        futureTs
+      );
+    } catch {
+      reverted = true;
+    }
+
+    assert(reverted);
   });
 });

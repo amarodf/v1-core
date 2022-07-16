@@ -55,18 +55,18 @@ contract("vPair", (accounts) => {
     );
   });
 
-  // it("Should set whitelist", async () => {
-  //   await vPairInstance.setWhitelist(accounts.slice(1, 4), {
-  //     from: wallet,
-  //   });
-  //   const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-  //   const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-  //   const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
+  it("Should set whitelist", async () => {
+    await vPairInstance.setWhitelist(accounts.slice(1, 4), {
+      from: wallet,
+    });
+    const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
+    const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
+    const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
 
-  //   expect(response1).to.be.true;
-  //   expect(response2).to.be.true;
-  //   expect(response3).to.be.true;
-  // });
+    expect(response1).to.be.true;
+    expect(response2).to.be.true;
+    expect(response3).to.be.true;
+  });
 
   it("Should assert old whitelist is obsolete after re-setting", async () => {
     await vPairInstance.setWhitelist(accounts.slice(1, 5), {
@@ -143,102 +143,49 @@ contract("vPair", (accounts) => {
     expect(response9).to.be.false;
   });
 
-  // it("Should not set whitelist if not admin", async () => {
-  //   await expect(
-  //     vPairInstance.setWhitelist(accounts.slice(1, 5), {
-  //       from: accounts[2],
-  //     })
-  //   ).to.revertedWith("");
+  it("Should not set whitelist if not admin", async () => {
+    await expect(
+      vPairInstance.setWhitelist(accounts.slice(1, 5), {
+        from: accounts[2],
+      })
+    ).to.revertedWith("");
+  });
 
-  //   const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-  //   const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-  //   const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
-  //   const response4 = await vPairInstance.whitelistAllowance(accounts[4]);
+  it("Should set factory", async () => {
+    vPairFactoryInstance2 = await vPairFactory.new({
+      from: accounts[1],
+    });
 
-  //   expect(response1).to.be.false;
-  //   expect(response2).to.be.false;
-  //   expect(response3).to.be.false;
-  //   expect(response4).to.be.false;
-  // });
+    await vPairInstance.setFactory(vPairFactoryInstance2.address);
 
-  // it("Should set factory", async () => {
-  //   vPairFactoryInstance2 = await vPairFactory.new({
-  //     from: accounts[1],
-  //   });
+    const factoryAddress = await vPairInstance.factory();
 
-  //   await vPairInstance.setFactory(vPairFactoryInstance2.address);
+    expect(factoryAddress).to.be.equal(vPairFactoryInstance2.address);
+  });
 
-  //   const factoryAddress = await vPairInstance.factory();
+  it("Should set fee", async () => {
+    const feeChange = 1000;
+    const vFeeChange = 2000;
+    await vPairInstance.setFee(feeChange, vFeeChange);
 
-  //   expect(factoryAddress).to.be.equal(vPairFactoryInstance2.address);
-  // });
+    const fee = await vPairInstance.fee();
+    const vFee = await vPairInstance.vFee();
 
-  // it("Should not set factory if not admin", async () => {
-  //   vPairFactoryInstance2 = await vPairFactory.new({
-  //     from: accounts[1],
-  //   });
+    expect(fee.toNumber()).to.be.equal(feeChange);
+    expect(vFee.toNumber()).to.be.equal(vFeeChange);
+  });
 
-  //   await expect(
-  //     vPairInstance.setFactory(vPairFactoryInstance2.address, {
-  //       from: accounts[1],
-  //     })
-  //   ).to.revertedWith("");
+  it("Should set max reserve threshold", async () => {
+    let reverted = false;
+    const thresholdChange = 2000;
+    try {
+      await vPairInstance.setMaxReserveThreshold(thresholdChange);
+    } catch (err) {
+      reverted = true;
+    }
 
-  //   const factoryAddress = await vPairInstance.factory();
-
-  //   expect(factoryAddress).to.be.not.equal(vPairFactoryInstance2.address);
-  // });
-
-  // it("Should set fee", async () => {
-  //   const feeChange = 1000;
-  //   const vFeeChange = 2000;
-  //   await vPairInstance.setFee(feeChange, vFeeChange);
-
-  //   const fee = await vPairInstance.fee();
-  //   const vFee = await vPairInstance.vFee();
-
-  //   expect(fee.toNumber()).to.be.equal(feeChange);
-  //   expect(vFee.toNumber()).to.be.equal(vFeeChange);
-  // });
-
-  // it("Should not set fee if not admin", async () => {
-  //   const feeChange = 1000;
-  //   const vFeeChange = 2000;
-
-  //   await expect(
-  //     vPairInstance.vPairInstance.setFee(feeChange, vFeeChange, {
-  //       from: accounts[1],
-  //     })
-  //   ).to.revertedWith("");
-
-  //   const fee = await vPairInstance.fee();
-  //   const vFee = await vPairInstance.vFee();
-
-  //   expect(fee.toNumber()).to.be.not.equal(feeChange);
-  //   expect(vFee.toNumber()).to.be.not.equal(vFeeChange);
-  // });
-
-  // it("Should set max reserve threshold", async () => {
-  //   let reverted = false;
-  //   const thresholdChange = 2000;
-  //   try {
-  //     await vPairInstance.setMaxReserveThreshold(thresholdChange);
-  //   } catch (err) {
-  //     reverted = true;
-  //   }
-
-  //   expect(reverted).to.be.false;
-  // });
-
-  // it("Should not set max reserve threshold if not admin", async () => {
-  //   const thresholdChange = 2000;
-
-  //   await expect(
-  //     vPairInstance.setMaxReserveThreshold(feeChange, vFeeChange, {
-  //       from: accounts[1],
-  //     })
-  //   ).to.revertedWith("");
-  // });
+    expect(reverted).to.be.false;
+  });
 
   // it("Should mint", async () => {
   //   await vPairInstance.mint(wallet);

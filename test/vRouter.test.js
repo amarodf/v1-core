@@ -2,12 +2,16 @@ const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapMath = artifacts.require("vSwapMath");
-const { catchRevert } = require("./exceptions");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
+const { solidity } = require("ethereum-waffle");
+const chai = require("chai");
+
+chai.use(solidity);
+const { expect } = chai;
 
 contract("vRouter", (accounts) => {
   function fromWeiToNumber(number) {
-      return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
+    return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
   }
 
   async function getFutureBlockTimestamp() {
