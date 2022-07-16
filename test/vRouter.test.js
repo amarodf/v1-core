@@ -608,6 +608,8 @@ contract("vRouter", (accounts) => {
     let lpBalanceBefore = await pool.balanceOf(accounts[0]);
     const tokenAInstance = await ERC20.at(tokenA.address);
     const tokenBInstance = await ERC20.at(tokenB.address);
+    const tokenCInstance = await ERC20.at(tokenC.address);
+
 
     let tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
     let tokenBBalanceBefore = await tokenBInstance.balanceOf(accounts[0]);
@@ -619,6 +621,7 @@ contract("vRouter", (accounts) => {
     const futureTs = await getFutureBlockTimestamp();
 
     const cResrveRatio = await pool.reserveRatio(tokenC.address);
+    const userTokenCBalance = await tokenCInstance.balanceOf(accounts[0]);
 
     await vRouterInstance.removeLiquidity(
       tokenA.address,
@@ -648,15 +651,27 @@ contract("vRouter", (accounts) => {
 
     const cResrveRatioAfter = await pool.reserveRatio(tokenC.address);
 
+    const userTokenCBalanceAfter = await tokenCInstance.balanceOf(accounts[0]);
+
     assert.equal(lpBalanceAfter, 0, "LP tokens not zero");
     expect(tokenABalanceBefore).to.lessThan(tokenABalanceAfter);
     expect(tokenBBalanceBefore).to.lessThan(tokenBBalanceAfter);
 
-    expect(reserve0).to.lessThan(reserve0After);
-    expect(reserve1).to.lessThan(reserve1After);
+    expect(fromWeiToNumber(reserve0After)).to.lessThan(
+      fromWeiToNumber(reserve0)
+    );
+    expect(fromWeiToNumber(reserve1After)).to.lessThan(
+      fromWeiToNumber(reserve1)
+    );
+
+    expect(fromWeiToNumber(userTokenCBalance)).to.lessThan(
+      fromWeiToNumber(userTokenCBalanceAfter)
+    );
 
     //check C reserve was updated in pool
-    expect(cResrveRatio).to.lessThan(cResrveRatioAfter);
+    // expect(fromWeiToNumber(cResrveRatio)).to.lessThan(
+    //   fromWeiToNumber(cResrveRatioAfter)
+    // );
   });
 
   it("Should re-add liquidity", async () => {
@@ -683,17 +698,18 @@ contract("vRouter", (accounts) => {
 
     let rr = await pool.calculateReserveRatio();
     console.log("reserveratio: " + rr);
+    const futureTs = await getFutureBlockTimestamp();
 
-    // await vRouterInstance.addLiquidity(
-    //   tokenA.address,
-    //   tokenB.address,
-    //   amountADesired,
-    //   amountBDesired,
-    //   amountADesired,
-    //   amountBDesired,
-    //   accounts[0],
-    //   futureTs
-    // );
+    await vRouterInstance.addLiquidity(
+      tokenA.address,
+      tokenB.address,
+      amountADesired,
+      amountBDesired,
+      amountADesired,
+      amountBDesired,
+      accounts[0],
+      futureTs
+    );
 
     // let reserve0After = await pool.reserve0();
     // let reserve1After = await pool.reserve1();

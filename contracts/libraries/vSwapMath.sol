@@ -119,9 +119,13 @@ library vSwapMath {
     function deductReserveRatioFromLP(uint256 _liquidity, uint256 _reserveRatio)
         public
         pure
-        returns (uint256 lpAmount)
+        returns (uint256)
     {
-        uint256 numerator = _liquidity * (DEDUCT_FACTOR - _reserveRatio);
-        lpAmount = numerator / DEDUCT_FACTOR;
+        if (_reserveRatio > 0) {
+            return
+                (_liquidity * (DEDUCT_FACTOR - _reserveRatio)) / DEDUCT_FACTOR;
+        }
+
+        return _liquidity;
     }
 }

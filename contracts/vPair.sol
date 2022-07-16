@@ -245,6 +245,12 @@ contract vPair is IvPair, vSwapERC20 {
         vPool.commonToken = vPoolTokens.ik1;
     }
 
+    function updateAssetReserveRatio(
+        address reserveToken,
+        address tokenOut,
+        uint256 amountOut
+    ) internal {}
+
     function swapReserveToNative(
         uint256 amountOut,
         address ikPair,
@@ -285,6 +291,7 @@ contract vPair is IvPair, vSwapERC20 {
 
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
+        //update reserve balance for reserve 0 in the equivalent of token0 value
         reserveRatio[vPool.token0] =
             reserveRatio[vPool.token0] +
             (
@@ -325,13 +332,8 @@ contract vPair is IvPair, vSwapERC20 {
         }
 
         uint256 reserveRatio = this.calculateReserveRatio();
-        if (reserveRatio > 0) {
-            // deduct reserve ratio from liquidity
-            liquidity = vSwapMath.deductReserveRatioFromLP(
-                liquidity,
-                reserveRatio
-            );
-        }
+        // deduct reserve ratio from liquidity
+        liquidity = vSwapMath.deductReserveRatioFromLP(liquidity, reserveRatio);
 
         require(liquidity > 0, "ILM");
 
@@ -367,14 +369,25 @@ contract vPair is IvPair, vSwapERC20 {
         uint256 _currentReserveRatio = this.calculateReserveRatio();
         if (_currentReserveRatio > 0) {
             for (uint256 i = 0; i < whitelist.length; ++i) {
-                uint256 balance = IERC20(whitelist[i]).balanceOf(address(this));
-                if (balance > 0) {
-                    uint256 amount = balance * (liquidity / _totalSupply);
-                    SafeERC20.safeTransfer(IERC20(whitelist[i]), to, amount);
+                uint256 reserveBalance = IERC20(whitelist[i]).balanceOf(
+                    address(this)
+                );
+                if (reserveBalance > 0) {
+                    uint256 reserveAmountOut = (reserveBalance * liquidity) /
+                        _totalSupply;
 
-                    reserveRatio[whitelist[i]] =
-                        reserveRatio[whitelist[i]] -
-                        amount;
+                    SafeERC20.safeTransfer(
+                        IERC20(whitelist[i]),
+                        to,
+                        reserveAmountOut
+                    );
+                    ///TBD
+                    reserveRatio[whitelist[i]] = 0;
+                    // updateAssetResrveRatio(
+                    //     whitelist[i],
+                    //     vPool.token1,
+                    //     reserveAmountOut
+                    // );
                 }
             }
         }
