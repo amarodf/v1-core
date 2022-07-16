@@ -2,6 +2,7 @@ const { sqrt } = require("bn-sqrt");
 const { toDecimalUnits, toBn } = require("./utils");
 const { solidity } = require("ethereum-waffle");
 const chai = require("chai");
+const { assert } = require("chai");
 
 const vPair = artifacts.require("vPair");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
@@ -185,6 +186,18 @@ contract("vPair", (accounts) => {
     }
 
     expect(reverted).to.be.false;
+  });
+
+  it("Should set max whitelist count", async () => {
+    let reverted = false;
+    const whitelist_ = 2000;
+    const maxWhitelist = vPairInstance.max_whitelist_count();
+
+    await vPairInstance.setMaxWhitelistCount(maxWhitelist - 1);
+
+    const maxWhitelistAfter = vPairInstance.max_whitelist_count();
+
+    assert.equal(maxWhitelist - 1, maxWhitelistAfter);
   });
 
   // it("Should mint", async () => {

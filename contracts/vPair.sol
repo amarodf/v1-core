@@ -324,11 +324,14 @@ contract vPair is IvPair, vSwapERC20 {
             );
         }
 
-        // deduct reserve ratio from liquidity
-        liquidity = vSwapMath.deductReserveRatioFromLP(
-            liquidity,
-            this.calculateReserveRatio()
-        );
+        uint256 reserveRatio = this.calculateReserveRatio();
+        if (reserveRatio > 0) {
+            // deduct reserve ratio from liquidity
+            liquidity = vSwapMath.deductReserveRatioFromLP(
+                liquidity,
+                reserveRatio
+            );
+        }
 
         require(liquidity > 0, "ILM");
 
@@ -360,11 +363,19 @@ contract vPair is IvPair, vSwapERC20 {
         SafeERC20.safeTransfer(IERC20(_token0), to, amount0);
         SafeERC20.safeTransfer(IERC20(_token1), to, amount1);
 
-        for (uint256 i = 0; i < whitelist.length; ++i) {
-            uint256 balance = IERC20(whitelist[i]).balanceOf(address(this));
-            if (balance > 0) {
-                uint256 amount = balance * (liquidity / _totalSupply);
-                SafeERC20.safeTransfer(IERC20(_token0), to, amount);
+        //distribute reserve tokens and update reserve ratios
+        uint256 _currentReserveRatio = this.calculateReserveRatio();
+        if (_currentReserveRatio > 0) {
+            for (uint256 i = 0; i < whitelist.length; ++i) {
+                uint256 balance = IERC20(whitelist[i]).balanceOf(address(this));
+                if (balance > 0) {
+                    uint256 amount = balance * (liquidity / _totalSupply);
+                    SafeERC20.safeTransfer(IERC20(whitelist[i]), to, amount);
+
+                    reserveRatio[whitelist[i]] =
+                        reserveRatio[whitelist[i]] -
+                        amount;
+                }
             }
         }
 

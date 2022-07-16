@@ -264,40 +264,6 @@ contract vRouter is IvRouter {
         liquidity = IvPair(pair).mint(to);
     }
 
-    function addLiquidity2(
-        address tokenA,
-        address tokenB,
-        uint256 amountADesired,
-        uint256 amountBDesired,
-        uint256 amountAMin,
-        uint256 amountBMin,
-        address to,
-        uint256 deadline
-    )
-        external
-        ensure(deadline)
-        returns (
-            uint256 amountA,
-            uint256 amountB,
-            uint256 liquidity
-        )
-    {
-        (amountA, amountB) = _addLiquidity(
-            tokenA,
-            tokenB,
-            amountADesired,
-            amountBDesired,
-            amountAMin,
-            amountBMin
-        );
-
-        address pair = IvPairFactory(factory).getPair(tokenA, tokenB);
-
-        SafeERC20.safeTransferFrom(IERC20(tokenA), msg.sender, pair, amountA);
-        SafeERC20.safeTransferFrom(IERC20(tokenB), msg.sender, pair, amountB);
-        liquidity = IvPair(pair).mint(to);
-    }
-
     function addLiquidityETH(
         address token,
         uint256 amountTokenDesired,

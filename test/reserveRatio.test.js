@@ -3,13 +3,7 @@ const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapMath = artifacts.require("vSwapMath");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
-const { solidity } = require("ethereum-waffle");
-const chai = require("chai");
 const catchRevert = require("./exceptions");
-const { assert } = require("chai");
-
-chai.use(solidity);
-const { expect } = chai;
 
 contract("ReserveRatio", (accounts) => {
   function fromWeiToNumber(number) {
@@ -372,7 +366,7 @@ contract("ReserveRatio", (accounts) => {
     );
   });
 
-  it("Should revert a transaction that goes beyod reserve ratio", async () => {
+  it("Should revert swap that goes beyond reserve ratio", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
       tokenD.address,
       tokenB.address
@@ -392,9 +386,8 @@ contract("ReserveRatio", (accounts) => {
     );
 
     const futureTs = await getFutureBlockTimestamp();
-    let reverted = false;
-    try {
-      let swapTx = await vRouterInstance.swap(
+    await catchRevert(
+      await vRouterInstance.swap(
         [jkPair],
         [amountIn],
         [amountOut],
@@ -403,11 +396,9 @@ contract("ReserveRatio", (accounts) => {
         tokenA.address,
         accounts[0],
         futureTs
-      );
-    } catch {
-      reverted = true;
-    }
-
-    assert(reverted);
+      )
+    );
   });
+
+  it("Should distribute reserve tokens on removeLiquidity and update reserve ratios", async () => {});
 });
