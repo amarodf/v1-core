@@ -20,4 +20,14 @@ interface IvPairFactory {
         returns (address);
 
     function admin() external view returns (address);
+
+    function setMaxReserveThreshold(uint256 _max_reserve_ratio_default)
+        external;
+
+    function setMaxWhitelistCount(uint256 _max_whitelist_count_default)
+        external;
+
+    function setPairFeeDefault(uint256 _pair_fee_default) external;
+
+    function setPairVFeeDefault(uint256 _pair_vfee_default) external;
 }

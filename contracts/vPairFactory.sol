@@ -9,7 +9,10 @@ contract vPairFactory is IvPairFactory {
 
     address public immutable override admin;
 
-    uint256 constant MAX_RESERVE_RATIO_DEFAULT = 2000 * 1e18;
+    uint256 max_reserve_ratio_default;
+    uint256 max_whitelist_count_default;
+    uint256 pair_fee_default;
+    uint256 pair_vfee_default;
 
     modifier onlyAdmin() {
         require(msg.sender == admin);
@@ -18,6 +21,42 @@ contract vPairFactory is IvPairFactory {
 
     constructor() {
         admin = msg.sender;
+        max_reserve_ratio_default = 2000 * 1e18;
+        max_whitelist_count_default = 8;
+        pair_fee_default = 997;
+        pair_vfee_default = 996;
+    }
+
+    function setMaxReserveThreshold(uint256 _max_reserve_ratio_default)
+        external
+        override
+        onlyAdmin
+    {
+        max_reserve_ratio_default = _max_reserve_ratio_default;
+    }
+
+    function setMaxWhitelistCount(uint256 _max_whitelist_count_default)
+        external
+        override
+        onlyAdmin
+    {
+        max_whitelist_count_default = _max_whitelist_count_default;
+    }
+
+    function setPairFeeDefault(uint256 _pair_fee_default)
+        external
+        override
+        onlyAdmin
+    {
+        pair_fee_default = _pair_fee_default;
+    }
+
+    function setPairVFeeDefault(uint256 _pair_vfee_default)
+        external
+        override
+        onlyAdmin
+    {
+        pair_vfee_default = _pair_vfee_default;
     }
 
     function allPairsLength() external view override returns (uint256) {
@@ -52,10 +91,11 @@ contract vPairFactory is IvPairFactory {
             address(this),
             token0,
             token1,
-            997,
-            996,
-            MAX_RESERVE_RATIO_DEFAULT //2 pct
-        ); // 997 = 0.03%
+            pair_fee_default,
+            pair_vfee_default,
+            max_reserve_ratio_default,
+            max_whitelist_count_default
+        );
 
         pairs[token0][token1] = address(newPair);
         pairs[token1][token0] = address(newPair);

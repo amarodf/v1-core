@@ -34,13 +34,13 @@ library vSwapMath {
         vPoolTokens.jk1 = _jkToken1;
     }
 
-    function percent(
-        uint256 numerator,
-        uint256 denominator,
-        uint256 precision
-    ) internal pure returns (uint256 quotient) {
+    function percent(uint256 numerator, uint256 denominator)
+        internal
+        pure
+        returns (uint256 quotient)
+    {
         // caution, check safe-to-multiply here
-        uint256 _numerator = numerator * 10**(precision + 1);
+        uint256 _numerator = numerator * 10**(18 + 1);
         // with rounding of last digit
         uint256 _quotient = ((_numerator / denominator) + 5) / 10;
         return (_quotient);
@@ -53,7 +53,7 @@ library vSwapMath {
     ) public pure returns (uint256) {
         return
             rRatio +
-            (percent(_rReserve * 100, (_baseReserve * 2), 18) *
+            (percent(_rReserve * 100, (_baseReserve * 2)) *
                 RESERVE_RATIO_FACTOR);
     }
 
@@ -116,16 +116,15 @@ library vSwapMath {
             : (reserve1, reserve0);
     }
 
-    function deductReserveRatioFromLP(uint256 _liquidity, uint256 _reserveRatio)
+    function substractPercentFromNumber(uint256 _base, uint256 _percentage)
         public
         pure
         returns (uint256)
     {
-        if (_reserveRatio > 0) {
-            return
-                (_liquidity * (DEDUCT_FACTOR - _reserveRatio)) / DEDUCT_FACTOR;
+        if (_percentage > 0) {
+            return (_base * (DEDUCT_FACTOR - _percentage)) / DEDUCT_FACTOR;
         }
 
-        return _liquidity;
+        return _base;
     }
 }

@@ -54,15 +54,16 @@ contract vPair is IvPair, vSwapERC20 {
         address _tokenB,
         uint256 _fee,
         uint256 _vFee,
-        uint256 maxReserveRatio
+        uint256 _max_reserve_ratio,
+        uint256 _max_whitelist_count
     ) {
         factory = _factory;
         token0 = _tokenA;
         token1 = _tokenB;
         fee = _fee;
         vFee = _vFee;
-        max_reserve_ratio = maxReserveRatio;
-        max_whitelist_count = 8;
+        max_reserve_ratio = _max_reserve_ratio;
+        max_whitelist_count = _max_whitelist_count;
     }
 
     function _update(uint256 balance0, uint256 balance1) private {
@@ -333,7 +334,10 @@ contract vPair is IvPair, vSwapERC20 {
 
         uint256 reserveRatio = this.calculateReserveRatio();
         // deduct reserve ratio from liquidity
-        liquidity = vSwapMath.deductReserveRatioFromLP(liquidity, reserveRatio);
+        liquidity = vSwapMath.substractPercentFromNumber(
+            liquidity,
+            reserveRatio
+        );
 
         require(liquidity > 0, "ILM");
 
@@ -369,25 +373,25 @@ contract vPair is IvPair, vSwapERC20 {
         uint256 _currentReserveRatio = this.calculateReserveRatio();
         if (_currentReserveRatio > 0) {
             for (uint256 i = 0; i < whitelist.length; ++i) {
-                uint256 reserveBalance = IERC20(whitelist[i]).balanceOf(
-                    address(this)
-                );
+                address _wlI = whitelist[i];
+                uint256 reserveBalance = IERC20(_wlI).balanceOf(address(this));
                 if (reserveBalance > 0) {
                     uint256 reserveAmountOut = (reserveBalance * liquidity) /
-                        _totalSupply;
+                        (_totalSupply - MINIMUM_LIQUIDITY);
 
-                    SafeERC20.safeTransfer(
-                        IERC20(whitelist[i]),
-                        to,
-                        reserveAmountOut
+                    SafeERC20.safeTransfer(IERC20(_wlI), to, reserveAmountOut);
+
+                    uint256 _reserveRatioI = reserveRatio[_wlI];
+
+                    uint256 amountPCT = vSwapMath.percent(
+                        reserveAmountOut,
+                        _reserveRatioI
                     );
-                    ///TBD
-                    reserveRatio[whitelist[i]] = 0;
-                    // updateAssetResrveRatio(
-                    //     whitelist[i],
-                    //     vPool.token1,
-                    //     reserveAmountOut
-                    // );
+
+                    reserveRatio[_wlI] = vSwapMath.substractPercentFromNumber(
+                        _reserveRatioI,
+                        amountPCT
+                    );
                 }
             }
         }
