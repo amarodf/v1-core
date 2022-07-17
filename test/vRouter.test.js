@@ -619,7 +619,7 @@ contract("vRouter", (accounts) => {
     await pool.approve(vRouterInstance.address, lpBalanceBefore);
     const futureTs = await getFutureBlockTimestamp();
 
-    const cResrveRatio = await pool.reserveRatio(tokenC.address);
+    const cResrveRatio = await pool.reservesBaseValue(tokenC.address);
     const userTokenCBalance = await tokenCInstance.balanceOf(accounts[0]);
 
     await vRouterInstance.removeLiquidity(
@@ -648,7 +648,7 @@ contract("vRouter", (accounts) => {
     let reserve0After = await pool.reserve0();
     let reserve1After = await pool.reserve1();
 
-    const cResrveRatioAfter = await pool.reserveRatio(tokenC.address);
+    const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
 
     const userTokenCBalanceAfter = await tokenCInstance.balanceOf(accounts[0]);
 
@@ -667,16 +667,10 @@ contract("vRouter", (accounts) => {
       fromWeiToNumber(userTokenCBalanceAfter)
     );
 
-    let balanceAfter = await tokenC.balanceOf(poolAddress);
-
-    console.log("balanceAfter " + fromWeiToNumber(balanceAfter));
-    console.log("cResrveRatio " + cResrveRatio);
-    console.log("cResrveRatioAfter " + cResrveRatioAfter);
-
-    //check C reserve was updated in pool
-    // expect(fromWeiToNumber(cResrveRatio)).to.lessThan(
-    //   fromWeiToNumber(cResrveRatioAfter)
-    // );
+    // check C reserve was updated in pool
+    expect(fromWeiToNumber(cResrveRatioAfter)).to.lessThan(
+      fromWeiToNumber(cResrveRatio)
+    );
   });
 
   it("Should re-add liquidity", async () => {

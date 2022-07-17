@@ -23,7 +23,7 @@ contract vPair is IvPair, vSwapERC20 {
 
     uint256 private constant MINIMUM_LIQUIDITY = 10 * 1e3;
     uint256 private constant MULTIPLIER = 100000 * 1e18;
-    uint256 private max_reserve_ratio;
+    uint256 public max_reserve_ratio;
 
     address[] public whitelist;
     mapping(address => bool) public whitelistAllowance;
@@ -41,7 +41,7 @@ contract vPair is IvPair, vSwapERC20 {
     }
 
     function _onlyFactoryAdmin() internal view {
-        require(msg.sender == IvPairFactory(factory).admin());
+        require(msg.sender == IvPairFactory(factory).admin(), "OA");
     }
 
     modifier onlyFactoryAdmin() {
