@@ -21,7 +21,7 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve0;
     uint256 public override reserve1;
 
-    uint256 private constant MINIMUM_LIQUIDITY = 10 * 1e3;
+    uint256 private constant MINIMUM_LIQUIDITY = 10**3;
     uint256 private constant MULTIPLIER = 100000 * 1e18;
     uint256 public max_reserve_ratio;
 
@@ -273,7 +273,7 @@ contract vPair is IvPair, vSwapERC20 {
         uint256 amount0 = balance0 - _reserve0;
         uint256 amount1 = balance1 - _reserve1;
 
-        uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
+        uint256 _totalSupply = totalSupply();
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
