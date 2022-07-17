@@ -163,68 +163,6 @@ contract vPair is IvPair, vSwapERC20 {
         bytes calldata data
     ) external override onlyFactoryAdmin lock {}
 
-    // function swapNativeToReserve(
-    //     uint256 amountOut,
-    //     address ikPair,
-    //     address to,
-    //     bytes calldata data
-    // ) external override onlyFactoryAdmin lock {
-    //     // find common token
-    //     VirtualPoolModel memory vPool = getVirtualPool(ikPair);
-
-    //     // validate oracle with factory
-    //     require(
-    //         IvPairFactory(factory).getPair(vPool.token0, vPool.commonToken) ==
-    //             ikPair,
-    //         "IIKP"
-    //     );
-
-    //     //require tokenIn is native token
-    //     require(vPool.token0 == token0 || vPool.token0 == token1, "NT");
-
-    //     //require tokenOut is whitelisted
-    //     require(whitelistAllowance[vPool.token1], "TNW");
-
-    //     SafeERC20.safeTransfer(IERC20(vPool.token1), to, amountOut);
-
-    //     uint256 requiredAmountIn = vSwapMath.getAmountIn(
-    //         amountOut,
-    //         vPool.reserve0,
-    //         vPool.reserve1,
-    //         vFee
-    //     );
-
-    //     if (data.length > 0)
-    //         IvFlashSwapCallback(to).vFlashSwapCallback(
-    //             msg.sender,
-    //             amountOut,
-    //             requiredAmountIn,
-    //             vPool.token1,
-    //             data
-    //         );
-
-    //     uint256 amountIn = IERC20(vPool.token0).balanceOf(address(this)) -
-    //         reserves[vPool.token0];
-
-    //     require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
-
-    //     //change to PCT out
-    //     reserveRatio[vPool.token1] =
-    //         reserveRatio[vPool.token1] -
-    //         (
-    //             (vPool.token0 == token0)
-    //                 ? amountOut
-    //                 : vSwapMath.quote(amountOut, reserve1, reserve0)
-    //         );
-
-    //     reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
-
-    //     _update(
-    //         IERC20(token0).balanceOf(address(this)),
-    //         IERC20(token1).balanceOf(address(this))
-    //     );
-    // }
-
     function getVirtualPool(address ikPair)
         internal
         view

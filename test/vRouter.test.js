@@ -613,8 +613,11 @@ contract("vRouter", (accounts) => {
     let tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
     let tokenBBalanceBefore = await tokenBInstance.balanceOf(accounts[0]);
 
-    const reserve0 = await pool.reserve0();
-    const reserve1 = await pool.reserve1();
+    let reserve0 = await pool.reserve0();
+    let reserve1 = await pool.reserve1();
+
+    const amount0Min = fromWeiToNumber(reserve0) * 0.98;
+    const amount1Min = fromWeiToNumber(reserve1) * 0.98;
 
     await pool.approve(vRouterInstance.address, lpBalanceBefore);
     const futureTs = await getFutureBlockTimestamp();
@@ -626,8 +629,8 @@ contract("vRouter", (accounts) => {
       tokenA.address,
       tokenB.address,
       lpBalanceBefore,
-      reserve0,
-      reserve1,
+      web3.utils.toWei(amount0Min.toString(), "ether"),
+      web3.utils.toWei(amount1Min.toString(), "ether"),
       accounts[0],
       futureTs
     );

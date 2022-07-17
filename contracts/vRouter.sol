@@ -81,96 +81,9 @@ contract vRouter is IvRouter {
         }
     }
 
-    // function swapExactTokensForTokens(
-    //     address[] calldata pools,
-    //     uint256[] calldata amountsIn,
-    //     uint256[] calldata amountsOut,
-    //     address[] memory iks,
-    //     address inputToken,
-    //     address outputToken,
-    //     address to,
-    //     uint256 deadline
-    // ) {
-    //     for (uint256 i = 0; i < pools.length; i++) {
-    //         if (iks[i] > address(0)) {
-    //             VirtualPoolModel memory vPool = calculateVirtualPool(
-    //                 iks[i],
-    //                 pools[i]
-    //             );
-
-    //             uint256 amountOut = vSwapMath.getAmountOut(
-    //                 amountsIn[i],
-    //                 vPool.tokenABalance,
-    //                 vPool.tokenBBalance,
-    //                 vPool.fee,
-    //                 true
-    //             );
-
-    //             require(
-    //                 amountsOut[i] >= amountOut,
-    //                 "VSWAP:INSUFFICIENT_AMOUNT_OUT"
-    //             );
-    //         }
-    //     }
-    // }
-
     function changeFactory(address _factory) external override onlyOwner {
         factory = _factory;
     }
-
-    // function swapExactETHForTokens(
-    //     address[] calldata pools,
-    //     uint256[] calldata amountsIn,
-    //     uint256[] calldata amountsOut,
-    //     address outputToken,
-    //     uint256 deadline
-    // )
-    //     external
-    //     payable
-    //     virtual
-    //     override
-    //     ensure(deadline)
-    //     returns (uint256[] memory amounts)
-    // {
-    //     IWETH(WETH).deposit{value: amounts[0]}();
-    //     assert(
-    //         IWETH(WETH).transfer(
-    //             UniswapV2Library.pairFor(factory, path[0], path[1]),
-    //             amounts[0]
-    //         )
-    //     );
-    //     _swap(amounts, path, to);
-    // }
-
-    // function swapTokensForExactETH(
-    //     uint256 amountOut,
-    //     uint256 amountInMax,
-    //     address[] calldata path,
-    //     address to,
-    //     uint256 deadline
-    // )
-    //     external
-    //     virtual
-    //     override
-    //     ensure(deadline)
-    //     returns (uint256[] memory amounts)
-    // {
-    //     require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
-    //     amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-    //     require(
-    //         amounts[0] <= amountInMax,
-    //         "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
-    //     );
-    //     TransferHelper.safeTransferFrom(
-    //         path[0],
-    //         msg.sender,
-    //         UniswapV2Library.pairFor(factory, path[0], path[1]),
-    //         amounts[0]
-    //     );
-    //     _swap(amounts, path, address(this));
-    //     IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-    //     TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
-    // }
 
     function _addLiquidity(
         address tokenA,
@@ -329,8 +242,8 @@ contract vRouter is IvRouter {
             ? (amount0, amount1)
             : (amount1, amount0);
 
-        // require(amountA >= amountAMin, "VSWAP: INSUFFICIENT_A_AMOUNT");
-        // require(amountB >= amountBMin, "VSWAP: INSUFFICIENT_B_AMOUNT");
+        require(amountA >= amountAMin, "VSWAP: INSUFFICIENT_A_AMOUNT");
+        require(amountB >= amountBMin, "VSWAP: INSUFFICIENT_B_AMOUNT");
     }
 
     function removeLiquidityETH(
