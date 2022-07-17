@@ -120,7 +120,7 @@ contract vPair is IvPair, vSwapERC20 {
             fee
         );
 
-        if (data.length > 0)
+        if (data.length > 0) {
             IvFlashSwapCallback(to).vFlashSwapCallback(
                 msg.sender,
                 amountOut,
@@ -128,6 +128,7 @@ contract vPair is IvPair, vSwapERC20 {
                 _inputToken,
                 data
             );
+        }
 
         uint256 _amountIn = IERC20(_inputToken).balanceOf(address(this)) -
             _reserve0;
@@ -235,13 +236,12 @@ contract vPair is IvPair, vSwapERC20 {
                 data
             );
 
-        //amount in not calculated correctly - reserves[vPool.token0] is not the same as balanceOf
         uint256 amountIn = IERC20(vPool.token0).balanceOf(address(this)) -
             reserves[vPool.token0];
 
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
-        //update reserve balance for reserve 0 in the equivalent of token0 value
+        //update reserve balance in the equivalent of token0 value
         reservesBaseValue[vPool.token0] =
             reservesBaseValue[vPool.token0] +
             (
@@ -250,7 +250,7 @@ contract vPair is IvPair, vSwapERC20 {
                     : vSwapLibrary.quote(amountOut, reserve1, reserve0)
             );
 
-        //update reserve balance for reserve
+        //update reserve balance
         reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
 
         require(this.calculateReserveRatio() < max_reserve_ratio, "TBPT"); // reserve amount goes beyond pool threshold
