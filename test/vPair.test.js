@@ -162,155 +162,250 @@ contract("vPair", (accounts) => {
     console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
   });
 
-  it("Should burn", (async = () => {
+  async function addCToPoolAB() {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenC.address,
+      tokenB.address
+    );
 
-      
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
 
+    let amountOut = web3.utils.toWei("105", "ether");
 
-  }));
-  it("Should set max whitelist count", async () => {
-    const maxWhitelist = await vPairInstance.getMLQ();
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
 
-    console.log("maxWhitelist " + maxWhitelist);
+    const pool = await vPair.at(jkPair);
 
-    // await vPairInstance.setMaxWhitelistCount(maxWhitelist - 1);
+    const futureTs = await getFutureBlockTimestamp();
 
-    // const maxWhitelistAfter = vPairInstance.max_whitelist_count();
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountOut],
+      [ikPair],
+      tokenC.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+  }
 
-    // assert.equal(maxWhitelist - 1, maxWhitelistAfter);
+  it("Should burn", async () => {
+    //add reserve C to pool AB
+    await addCToPoolAB();
+
+    //get pool AB
+    const pool = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    const balanceCBefore = await tokenC.balanceOf(accounts[0]);
+
+    //get LP balance
+    const lpBalance = await vPairInstance.balanceOf(accounts[0]);
+
+    //transfer LP tokens to pool
+    await vPairInstance.transfer(vPairInstance.address, lpBalance);
+
+    const _reserveRatioBefore = await vPairInstance.calculateReserveRatio();
+    const _reserveBaseValueBefore = await vPairInstance.reservesBaseValue(
+      tokenC.address
+    );
+    const cReserveBefore = await vPairInstance.reserves(tokenC.address);
+
+    const tokenCPoolBalanceBefore = await tokenC.balanceOf(
+      vPairInstance.address
+    );
+
+    //call burn function
+    await vPairInstance.burn(accounts[0]);
+
+    const _reserveBaseValueAfter = await vPairInstance.reservesBaseValue(
+      tokenC.address
+    );
+
+    const _reserveRatioAfter = await vPairInstance.calculateReserveRatio();
+
+    const balanceCAfter = await tokenC.balanceOf(accounts[0]);
+
+    const cReserveAfter = await vPairInstance.reserves(tokenC.address);
+
+    const tokenCPoolBalanceAfter = await tokenC.balanceOf(
+      vPairInstance.address
+    );
+
+    console.log("balanceCBefore " + fromWeiToNumber(balanceCBefore));
+    console.log("balanceCAfter " + fromWeiToNumber(balanceCAfter));
+
+    console.log("_reserveRatioBefore " + fromWeiToNumber(_reserveRatioBefore));
+    console.log("_reserveRatioAfter " + fromWeiToNumber(_reserveRatioAfter));
+
+    console.log("cReserveBefore " + fromWeiToNumber(cReserveBefore));
+    console.log("cReserveAfter " + fromWeiToNumber(cReserveAfter));
+    
+    console.log("_reserveBaseValueBefore " + fromWeiToNumber(_reserveBaseValueBefore));
+    console.log("_reserveBaseValueAfter " + fromWeiToNumber(_reserveBaseValueAfter));
+    _reserveBaseValueAfter
+
+    console.log(
+      "tokenCPoolBalanceBefore " + fromWeiToNumber(tokenCPoolBalanceBefore)
+    );
+    console.log(
+      "tokenCPoolBalanceAfter " + fromWeiToNumber(tokenCPoolBalanceAfter)
+    );
   });
 
-  it("Should set whitelist", async () => {
-    await vPairInstance.setWhitelist(accounts.slice(1, 4), {
-      from: wallet,
-    });
-    const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-    const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-    const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
+  // it("Should set max whitelist count", async () => {
+  //   const maxWhitelist = await vPairInstance.getMLQ();
 
-    expect(response1).to.be.true;
-    expect(response2).to.be.true;
-    expect(response3).to.be.true;
-  });
+  //   console.log("maxWhitelist " + maxWhitelist);
 
-  it("Should assert old whitelist is obsolete after re-setting", async () => {
-    await vPairInstance.setWhitelist(accounts.slice(1, 5), {
-      from: wallet,
-    });
+  //   // await vPairInstance.setMaxWhitelistCount(maxWhitelist - 1);
 
-    let response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-    let response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-    let response3 = await vPairInstance.whitelistAllowance(accounts[3]);
-    let response4 = await vPairInstance.whitelistAllowance(accounts[4]);
-    let response5 = await vPairInstance.whitelistAllowance(accounts[5]);
-    let response6 = await vPairInstance.whitelistAllowance(accounts[6]);
-    let response7 = await vPairInstance.whitelistAllowance(accounts[7]);
-    let response8 = await vPairInstance.whitelistAllowance(accounts[8]);
+  //   // const maxWhitelistAfter = vPairInstance.max_whitelist_count();
 
-    expect(response1).to.be.true;
-    expect(response2).to.be.true;
-    expect(response3).to.be.true;
-    expect(response4).to.be.true;
-    expect(response5).to.be.false;
-    expect(response6).to.be.false;
-    expect(response7).to.be.false;
-    expect(response8).to.be.false;
+  //   // assert.equal(maxWhitelist - 1, maxWhitelistAfter);
+  // });
 
-    await vPairInstance.setWhitelist(accounts.slice(5, 9), {
-      from: wallet,
-    });
+  // it("Should set whitelist", async () => {
+  //   await vPairInstance.setWhitelist(accounts.slice(1, 4), {
+  //     from: wallet,
+  //   });
+  //   const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
+  //   const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
+  //   const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
 
-    response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-    response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-    response3 = await vPairInstance.whitelistAllowance(accounts[3]);
-    response4 = await vPairInstance.whitelistAllowance(accounts[4]);
-    response5 = await vPairInstance.whitelistAllowance(accounts[5]);
-    response6 = await vPairInstance.whitelistAllowance(accounts[6]);
-    response7 = await vPairInstance.whitelistAllowance(accounts[7]);
-    response8 = await vPairInstance.whitelistAllowance(accounts[8]);
+  //   expect(response1).to.be.true;
+  //   expect(response2).to.be.true;
+  //   expect(response3).to.be.true;
+  // });
 
-    expect(response1).to.be.false;
-    expect(response2).to.be.false;
-    expect(response3).to.be.false;
-    expect(response4).to.be.false;
+  // it("Should assert old whitelist is obsolete after re-setting", async () => {
+  //   await vPairInstance.setWhitelist(accounts.slice(1, 5), {
+  //     from: wallet,
+  //   });
 
-    expect(response5).to.be.true;
-    expect(response6).to.be.true;
-    expect(response7).to.be.true;
-    expect(response8).to.be.true;
-  });
+  //   let response1 = await vPairInstance.whitelistAllowance(accounts[1]);
+  //   let response2 = await vPairInstance.whitelistAllowance(accounts[2]);
+  //   let response3 = await vPairInstance.whitelistAllowance(accounts[3]);
+  //   let response4 = await vPairInstance.whitelistAllowance(accounts[4]);
+  //   let response5 = await vPairInstance.whitelistAllowance(accounts[5]);
+  //   let response6 = await vPairInstance.whitelistAllowance(accounts[6]);
+  //   let response7 = await vPairInstance.whitelistAllowance(accounts[7]);
+  //   let response8 = await vPairInstance.whitelistAllowance(accounts[8]);
 
-  it("Should not set whitelist if list is longer then max_whitelist", async () => {
-    await expect(
-      vPairInstance.setWhitelist(accounts.slice(1, 10), {
-        from: accounts[2],
-      })
-    ).to.revertedWith("");
+  //   expect(response1).to.be.true;
+  //   expect(response2).to.be.true;
+  //   expect(response3).to.be.true;
+  //   expect(response4).to.be.true;
+  //   expect(response5).to.be.false;
+  //   expect(response6).to.be.false;
+  //   expect(response7).to.be.false;
+  //   expect(response8).to.be.false;
 
-    const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
-    const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
-    const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
-    const response4 = await vPairInstance.whitelistAllowance(accounts[4]);
-    const response5 = await vPairInstance.whitelistAllowance(accounts[5]);
-    const response6 = await vPairInstance.whitelistAllowance(accounts[6]);
-    const response7 = await vPairInstance.whitelistAllowance(accounts[7]);
-    const response8 = await vPairInstance.whitelistAllowance(accounts[8]);
-    const response9 = await vPairInstance.whitelistAllowance(accounts[9]);
+  //   await vPairInstance.setWhitelist(accounts.slice(5, 9), {
+  //     from: wallet,
+  //   });
 
-    expect(response1).to.be.false;
-    expect(response2).to.be.false;
-    expect(response3).to.be.false;
-    expect(response4).to.be.false;
-    expect(response5).to.be.false;
-    expect(response6).to.be.false;
-    expect(response7).to.be.false;
-    expect(response8).to.be.false;
-    expect(response9).to.be.false;
-  });
+  //   response1 = await vPairInstance.whitelistAllowance(accounts[1]);
+  //   response2 = await vPairInstance.whitelistAllowance(accounts[2]);
+  //   response3 = await vPairInstance.whitelistAllowance(accounts[3]);
+  //   response4 = await vPairInstance.whitelistAllowance(accounts[4]);
+  //   response5 = await vPairInstance.whitelistAllowance(accounts[5]);
+  //   response6 = await vPairInstance.whitelistAllowance(accounts[6]);
+  //   response7 = await vPairInstance.whitelistAllowance(accounts[7]);
+  //   response8 = await vPairInstance.whitelistAllowance(accounts[8]);
 
-  it("Should not set whitelist if not admin", async () => {
-    await expect(
-      vPairInstance.setWhitelist(accounts.slice(1, 5), {
-        from: accounts[2],
-      })
-    ).to.revertedWith("");
-  });
+  //   expect(response1).to.be.false;
+  //   expect(response2).to.be.false;
+  //   expect(response3).to.be.false;
+  //   expect(response4).to.be.false;
 
-  it("Should set factory", async () => {
-    vPairFactoryInstance2 = await vPairFactory.new({
-      from: accounts[1],
-    });
+  //   expect(response5).to.be.true;
+  //   expect(response6).to.be.true;
+  //   expect(response7).to.be.true;
+  //   expect(response8).to.be.true;
+  // });
 
-    await vPairInstance.setFactory(vPairFactoryInstance2.address);
+  // it("Should not set whitelist if list is longer then max_whitelist", async () => {
+  //   await expect(
+  //     vPairInstance.setWhitelist(accounts.slice(1, 10), {
+  //       from: accounts[2],
+  //     })
+  //   ).to.revertedWith("");
 
-    const factoryAddress = await vPairInstance.factory();
+  //   const response1 = await vPairInstance.whitelistAllowance(accounts[1]);
+  //   const response2 = await vPairInstance.whitelistAllowance(accounts[2]);
+  //   const response3 = await vPairInstance.whitelistAllowance(accounts[3]);
+  //   const response4 = await vPairInstance.whitelistAllowance(accounts[4]);
+  //   const response5 = await vPairInstance.whitelistAllowance(accounts[5]);
+  //   const response6 = await vPairInstance.whitelistAllowance(accounts[6]);
+  //   const response7 = await vPairInstance.whitelistAllowance(accounts[7]);
+  //   const response8 = await vPairInstance.whitelistAllowance(accounts[8]);
+  //   const response9 = await vPairInstance.whitelistAllowance(accounts[9]);
 
-    expect(factoryAddress).to.be.equal(vPairFactoryInstance2.address);
-  });
+  //   expect(response1).to.be.false;
+  //   expect(response2).to.be.false;
+  //   expect(response3).to.be.false;
+  //   expect(response4).to.be.false;
+  //   expect(response5).to.be.false;
+  //   expect(response6).to.be.false;
+  //   expect(response7).to.be.false;
+  //   expect(response8).to.be.false;
+  //   expect(response9).to.be.false;
+  // });
 
-  it("Should set fee", async () => {
-    const feeChange = 1000;
-    const vFeeChange = 2000;
-    await vPairInstance.setFee(feeChange, vFeeChange);
+  // it("Should not set whitelist if not admin", async () => {
+  //   await expect(
+  //     vPairInstance.setWhitelist(accounts.slice(1, 5), {
+  //       from: accounts[2],
+  //     })
+  //   ).to.revertedWith("");
+  // });
 
-    const fee = await vPairInstance.fee();
-    const vFee = await vPairInstance.vFee();
+  // it("Should set factory", async () => {
+  //   vPairFactoryInstance2 = await vPairFactory.new({
+  //     from: accounts[1],
+  //   });
 
-    expect(fee.toNumber()).to.be.equal(feeChange);
-    expect(vFee.toNumber()).to.be.equal(vFeeChange);
-  });
+  //   await vPairInstance.setFactory(vPairFactoryInstance2.address);
 
-  it("Should set max reserve threshold", async () => {
-    let reverted = false;
-    const thresholdChange = 2000;
-    try {
-      await vPairInstance.setMaxReserveThreshold(thresholdChange);
-    } catch (err) {
-      reverted = true;
-    }
+  //   const factoryAddress = await vPairInstance.factory();
 
-    expect(reverted).to.be.false;
-  });
+  //   expect(factoryAddress).to.be.equal(vPairFactoryInstance2.address);
+  // });
+
+  // it("Should set fee", async () => {
+  //   const feeChange = 1000;
+  //   const vFeeChange = 2000;
+  //   await vPairInstance.setFee(feeChange, vFeeChange);
+
+  //   const fee = await vPairInstance.fee();
+  //   const vFee = await vPairInstance.vFee();
+
+  //   expect(fee.toNumber()).to.be.equal(feeChange);
+  //   expect(vFee.toNumber()).to.be.equal(vFeeChange);
+  // });
+
+  // it("Should set max reserve threshold", async () => {
+  //   let reverted = false;
+  //   const thresholdChange = 2000;
+  //   try {
+  //     await vPairInstance.setMaxReserveThreshold(thresholdChange);
+  //   } catch (err) {
+  //     reverted = true;
+  //   }
+
+  //   expect(reverted).to.be.false;
+  // });
 
   // it("Should mint", async () => {
   //   await vPairInstance.mint(wallet);

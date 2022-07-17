@@ -22,14 +22,15 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve1;
 
     uint256 private constant MINIMUM_LIQUIDITY = 10 * 1e3;
+    uint256 private constant MULTIPLIER = 100000 * 1e18;
     uint256 private max_reserve_ratio;
 
     address[] public whitelist;
     mapping(address => bool) public whitelistAllowance;
     uint256 public override max_whitelist_count;
 
-    mapping(address => uint256) public reserveRatio;
-    mapping(address => uint256) reserves;
+    mapping(address => uint256) public reservesBaseValue;
+    mapping(address => uint256) public reserves;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -144,7 +145,7 @@ contract vPair is IvPair, vSwapERC20 {
     {
         uint256 _baseReserve = reserve0;
         for (uint256 i = 0; i < whitelist.length; ++i) {
-            uint256 _rReserve = reserveRatio[whitelist[i]];
+            uint256 _rReserve = reservesBaseValue[whitelist[i]];
             if (_rReserve > 0) {
                 rRatio = vSwapMath.calculateReserveRatio(
                     rRatio,
@@ -160,60 +161,69 @@ contract vPair is IvPair, vSwapERC20 {
         address ikPair,
         address to,
         bytes calldata data
-    ) external override onlyFactoryAdmin lock {
-        // find common token
-        VirtualPoolModel memory vPool = getVirtualPool(ikPair);
+    ) external override onlyFactoryAdmin lock {}
 
-        // validate oracle with factory
-        require(
-            IvPairFactory(factory).getPair(vPool.token0, vPool.commonToken) ==
-                ikPair,
-            "IIKP"
-        );
+    // function swapNativeToReserve(
+    //     uint256 amountOut,
+    //     address ikPair,
+    //     address to,
+    //     bytes calldata data
+    // ) external override onlyFactoryAdmin lock {
+    //     // find common token
+    //     VirtualPoolModel memory vPool = getVirtualPool(ikPair);
 
-        //require tokenIn is native token
-        require(vPool.token0 == token0 || vPool.token0 == token1, "NT");
+    //     // validate oracle with factory
+    //     require(
+    //         IvPairFactory(factory).getPair(vPool.token0, vPool.commonToken) ==
+    //             ikPair,
+    //         "IIKP"
+    //     );
 
-        //require tokenOut is whitelisted
-        require(whitelistAllowance[vPool.token1], "TNW");
+    //     //require tokenIn is native token
+    //     require(vPool.token0 == token0 || vPool.token0 == token1, "NT");
 
-        SafeERC20.safeTransfer(IERC20(vPool.token1), to, amountOut);
+    //     //require tokenOut is whitelisted
+    //     require(whitelistAllowance[vPool.token1], "TNW");
 
-        uint256 requiredAmountIn = vSwapMath.getAmountIn(
-            amountOut,
-            vPool.reserve0,
-            vPool.reserve1,
-            vFee
-        );
+    //     SafeERC20.safeTransfer(IERC20(vPool.token1), to, amountOut);
 
-        if (data.length > 0)
-            IvFlashSwapCallback(to).vFlashSwapCallback(
-                msg.sender,
-                amountOut,
-                requiredAmountIn,
-                vPool.token1,
-                data
-            );
+    //     uint256 requiredAmountIn = vSwapMath.getAmountIn(
+    //         amountOut,
+    //         vPool.reserve0,
+    //         vPool.reserve1,
+    //         vFee
+    //     );
 
-        uint256 amountIn = IERC20(vPool.token1).balanceOf(address(this)) -
-            reserves[vPool.token1];
+    //     if (data.length > 0)
+    //         IvFlashSwapCallback(to).vFlashSwapCallback(
+    //             msg.sender,
+    //             amountOut,
+    //             requiredAmountIn,
+    //             vPool.token1,
+    //             data
+    //         );
 
-        require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
+    //     uint256 amountIn = IERC20(vPool.token0).balanceOf(address(this)) -
+    //         reserves[vPool.token0];
 
-        //change to PCT out
-        reserveRatio[vPool.token1] =
-            reserveRatio[vPool.token1] -
-            (
-                (vPool.token0 == token0)
-                    ? amountOut
-                    : vSwapMath.quote(amountOut, reserve1, reserve0)
-            );
+    //     require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
-        _update(
-            IERC20(token0).balanceOf(address(this)),
-            IERC20(token1).balanceOf(address(this))
-        );
-    }
+    //     //change to PCT out
+    //     reserveRatio[vPool.token1] =
+    //         reserveRatio[vPool.token1] -
+    //         (
+    //             (vPool.token0 == token0)
+    //                 ? amountOut
+    //                 : vSwapMath.quote(amountOut, reserve1, reserve0)
+    //         );
+
+    //     reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
+
+    //     _update(
+    //         IERC20(token0).balanceOf(address(this)),
+    //         IERC20(token1).balanceOf(address(this))
+    //     );
+    // }
 
     function getVirtualPool(address ikPair)
         internal
@@ -287,19 +297,23 @@ contract vPair is IvPair, vSwapERC20 {
                 data
             );
 
+        //amount in not calculated correctly - reserves[vPool.token0] is not the same as balanceOf
         uint256 amountIn = IERC20(vPool.token0).balanceOf(address(this)) -
             reserves[vPool.token0];
 
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
         //update reserve balance for reserve 0 in the equivalent of token0 value
-        reserveRatio[vPool.token0] =
-            reserveRatio[vPool.token0] +
+        reservesBaseValue[vPool.token0] =
+            reservesBaseValue[vPool.token0] +
             (
                 (vPool.token1 == token0)
                     ? amountOut
                     : vSwapMath.quote(amountOut, reserve1, reserve0)
             );
+
+        //update reserve balance for reserve
+        reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
 
         require(this.calculateReserveRatio() < max_reserve_ratio, "TBPT"); // reserve amount goes beyond pool threshold
 
@@ -333,11 +347,9 @@ contract vPair is IvPair, vSwapERC20 {
         }
 
         uint256 reserveRatio = this.calculateReserveRatio();
+
         // deduct reserve ratio from liquidity
-        liquidity = vSwapMath.substractPercentFromNumber(
-            liquidity,
-            reserveRatio
-        );
+        liquidity = vSwapMath.substractPCT(liquidity, reserveRatio);
 
         require(liquidity > 0, "ILM");
 
@@ -374,24 +386,24 @@ contract vPair is IvPair, vSwapERC20 {
         if (_currentReserveRatio > 0) {
             for (uint256 i = 0; i < whitelist.length; ++i) {
                 address _wlI = whitelist[i];
-                uint256 reserveBalance = IERC20(_wlI).balanceOf(address(this));
+                uint256 reserveBalance = reserves[_wlI];
+
                 if (reserveBalance > 0) {
                     uint256 reserveAmountOut = (reserveBalance * liquidity) /
                         (_totalSupply - MINIMUM_LIQUIDITY);
 
                     SafeERC20.safeTransfer(IERC20(_wlI), to, reserveAmountOut);
 
-                    uint256 _reserveRatioI = reserveRatio[_wlI];
-
                     uint256 amountPCT = vSwapMath.percent(
                         reserveAmountOut,
-                        _reserveRatioI
+                        reserveBalance
                     );
 
-                    reserveRatio[_wlI] = vSwapMath.substractPercentFromNumber(
-                        _reserveRatioI,
-                        amountPCT
-                    );
+                    reservesBaseValue[_wlI] =
+                        (reservesBaseValue[_wlI] / 1e18) *
+                        (1e18 - amountPCT);
+
+                    reserves[_wlI] = reserveBalance - reserveAmountOut;
                 }
             }
         }

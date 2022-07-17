@@ -6,7 +6,7 @@ import "../types.sol";
 library vSwapMath {
     uint256 private constant EPSILON = 1 wei;
     uint256 private constant RESERVE_RATIO_FACTOR = 1000;
-    uint256 private constant DEDUCT_FACTOR = 100000 * 1e18;
+    uint256 private constant MULTIPLIER = (RESERVE_RATIO_FACTOR * 100) * 1e18;
 
     //find common token and assign to ikToken1 and jkToken1
     function findCommonToken(
@@ -35,7 +35,7 @@ library vSwapMath {
     }
 
     function percent(uint256 numerator, uint256 denominator)
-        internal
+        public
         pure
         returns (uint256 quotient)
     {
@@ -116,13 +116,25 @@ library vSwapMath {
             : (reserve1, reserve0);
     }
 
-    function substractPercentFromNumber(uint256 _base, uint256 _percentage)
+    function substractPCT(uint256 _base, uint256 _percentage)
         public
         pure
         returns (uint256)
     {
         if (_percentage > 0) {
-            return (_base * (DEDUCT_FACTOR - _percentage)) / DEDUCT_FACTOR;
+            return (_base * (MULTIPLIER - _percentage)) / MULTIPLIER;
+        }
+
+        return _base;
+    }
+
+    function addPCT(uint256 _base, uint256 _percentage)
+        public
+        pure
+        returns (uint256)
+    {
+        if (_percentage > 0) {
+            return (_base * (MULTIPLIER + _percentage)) / MULTIPLIER;
         }
 
         return _base;

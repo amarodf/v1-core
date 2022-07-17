@@ -17,7 +17,7 @@ contract("ReserveRatio", (accounts) => {
   }
 
   const A_PRICE = 1;
-  const B_PRICE = 3;
+  const B_PRICE = 2;
   const C_PRICE = 6;
   const D_PRICE = 10;
 
@@ -48,7 +48,7 @@ contract("ReserveRatio", (accounts) => {
     const futureTs = await getFutureBlockTimestamp();
 
     //create pool A/B with 10,000 A and equivalent B
-    let AInput = 10000 * A_PRICE;
+    let AInput = 100 * A_PRICE;
     let BInput = (B_PRICE / A_PRICE) * AInput;
 
     await vRouterInstance.addLiquidity(
@@ -189,7 +189,7 @@ contract("ReserveRatio", (accounts) => {
     console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
   });
 
-  it("Should increase reserve ratio of C after adding C to pool A/B", async () => {
+  it("Should increase reserveRatio and reservesBaseValue of C after adding C to pool A/B", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
       tokenC.address,
       tokenB.address
@@ -200,7 +200,9 @@ contract("ReserveRatio", (accounts) => {
       tokenA.address
     );
 
-    let amountOut = web3.utils.toWei("15", "ether");
+    const pool = await vPair.at(jkPair);
+
+    let amountOut = web3.utils.toWei("1", "ether");
 
     const amountIn = await vRouterInstance.getVirtualAmountIn(
       jkPair,
@@ -208,11 +210,17 @@ contract("ReserveRatio", (accounts) => {
       amountOut
     );
 
-    const pool = await vPair.at(jkPair);
+    let tokenCReserveBaseValueBefore = await pool.reservesBaseValue(
+      tokenC.address
+    );
+    let tokenCReserveAbsoluteBefore = await pool.reserves(tokenC.address);
+
+    let balanceABefore = await tokenA.balanceOf(accounts[0]);
 
     const futureTs = await getFutureBlockTimestamp();
 
-    let tokenCReserve = await pool.reserveRatio(tokenC.address);
+    let reserveRatioBefore = await pool.calculateReserveRatio();
+    let tokenCReserve = await pool.reservesBaseValue(tokenC.address);
     await vRouterInstance.swap(
       [jkPair],
       [amountIn],
@@ -224,13 +232,47 @@ contract("ReserveRatio", (accounts) => {
       futureTs
     );
 
-    let tokenCReserveAfter = await pool.reserveRatio(tokenC.address);
+    let tokenCReserveBaseValueAfter = await pool.reservesBaseValue(
+      tokenC.address
+    );
+    let tokenCReserveAbsoluteAfter = await pool.reserves(tokenC.address);
+
+    let balanceAAfter = await tokenA.balanceOf(accounts[0]);
+
+    let reserveRatioAfter = await pool.calculateReserveRatio();
+
+    // console.log("balanceABefore " + fromWeiToNumber(balanceABefore));
+    // console.log("balanceAAfter " + fromWeiToNumber(balanceAAfter));
+
+    // console.log(
+    //   "tokenCReserveBaseValueBefore " +
+    //     fromWeiToNumber(tokenCReserveBaseValueBefore)
+    // );
+    // console.log(
+    //   "tokenCReserveBaseValueAfter " +
+    //     fromWeiToNumber(tokenCReserveBaseValueAfter)
+    // );
+
+    // console.log(
+    //   "tokenCReserveAbsoluteBefore " +
+    //     fromWeiToNumber(tokenCReserveAbsoluteBefore)
+    // );
+    // console.log(
+    //   "tokenCReserveAbsoluteAfter " +
+    //     fromWeiToNumber(tokenCReserveAbsoluteAfter)
+    // );
+
+    expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
+      fromWeiToNumber(reserveRatioAfter)
+    );
+
+    let tokenCReserveAfter = await pool.reservesBaseValue(tokenC.address);
     expect(fromWeiToNumber(tokenCReserve)).to.lessThan(
       fromWeiToNumber(tokenCReserveAfter)
     );
   });
 
-  it("Should increase reserve ratio of D after adding D to pool A/B", async () => {
+  it("Should increase reserveRatio and reservesBaseValue of D after adding D to pool A/B", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
       tokenD.address,
       tokenB.address
@@ -241,7 +283,7 @@ contract("ReserveRatio", (accounts) => {
       tokenA.address
     );
 
-    let amountOut = web3.utils.toWei("150", "ether");
+    let amountOut = web3.utils.toWei("2", "ether");
 
     const amountIn = await vRouterInstance.getVirtualAmountIn(
       jkPair,
@@ -253,7 +295,12 @@ contract("ReserveRatio", (accounts) => {
 
     const futureTs = await getFutureBlockTimestamp();
 
-    let tokenDReserve = await pool.reserveRatio(tokenD.address);
+    let reserveRatioBefore = await pool.calculateReserveRatio();
+
+    let balanceABefore = await tokenA.balanceOf(accounts[0]);
+
+    let tokenDReserve = await pool.reservesBaseValue(tokenD.address);
+
     await vRouterInstance.swap(
       [jkPair],
       [amountIn],
@@ -265,7 +312,20 @@ contract("ReserveRatio", (accounts) => {
       futureTs
     );
 
-    let tokenDReserveAfter = await pool.reserveRatio(tokenD.address);
+    let balanceAAfter = await tokenA.balanceOf(accounts[0]);
+
+    let tokenCReserveAfter = await pool.reservesBaseValue(tokenC.address);
+    let tokenDReserveAfter = await pool.reservesBaseValue(tokenD.address);
+
+    let sum =
+      fromWeiToNumber(tokenCReserveAfter) + fromWeiToNumber(tokenDReserveAfter);
+
+    let reserveRatioAfter = await pool.calculateReserveRatio();
+
+    expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
+      fromWeiToNumber(reserveRatioAfter)
+    );
+
     expect(fromWeiToNumber(tokenDReserve)).to.lessThan(
       fromWeiToNumber(tokenDReserveAfter)
     );
@@ -292,8 +352,9 @@ contract("ReserveRatio", (accounts) => {
     let pool = await vPair.at(jkPair);
     let poolReserveRatio = await pool.calculateReserveRatio();
 
-    let poolCReserves = await pool.reserveRatio(tokenC.address);
-    let poolDReserves = await pool.reserveRatio(tokenD.address);
+    console.log("poolReserveRatio " + poolReserveRatio);
+    let poolCReserves = await pool.reservesBaseValue(tokenC.address);
+    let poolDReserves = await pool.reservesBaseValue(tokenD.address);
 
     poolCReserves = fromWeiToNumber(poolCReserves);
     poolDReserves = fromWeiToNumber(poolDReserves);
@@ -306,6 +367,7 @@ contract("ReserveRatio", (accounts) => {
 
     let reserveRatioPCT =
       ((totalReserves / poolLiquidity) * 100).toFixed(3) * 1;
+
     poolReserveRatio = fromWeiToNumber(poolReserveRatio);
 
     assert.equal(
