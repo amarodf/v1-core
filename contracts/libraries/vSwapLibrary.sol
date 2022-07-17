@@ -3,7 +3,7 @@ pragma solidity =0.8.1;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../types.sol";
 
-library vSwapMath {
+library vSwapLibrary {
     uint256 private constant EPSILON = 1 wei;
     uint256 private constant RESERVE_RATIO_FACTOR = 1000;
     uint256 private constant MULTIPLIER = (RESERVE_RATIO_FACTOR * 100) * 1e18;

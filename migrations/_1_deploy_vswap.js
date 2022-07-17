@@ -3,9 +3,9 @@ const vPool = artifacts.require("VirtualPool");
 module.exports = async function (deployer) {
     await connectDB();
   
-    await deployer.deploy(vSwapMath);
+    await deployer.deploy(vSwapLibrary);
   
-    await deployer.link(vSwapMath, vPool);
+    await deployer.link(vSwapLibrary, vPool);
     await deployer.deploy(vPool, "0x0206953b5845106e8335E3e2224d1Fb2f90DB5c5");
   
     //update current vFactory

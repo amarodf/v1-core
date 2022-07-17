@@ -7,7 +7,7 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "./types.sol";
-import "./libraries/vSwapMath.sol";
+import "./libraries/vSwapLibrary.sol";
 import "./interfaces/IvPair.sol";
 import "./interfaces/IvRouter.sol";
 import "./interfaces/IvPairFactory.sol";
@@ -103,7 +103,7 @@ contract vRouter is IvRouter {
             IvPair(pool).reserve1()
         );
 
-        (reserve0, reserve1) = vSwapMath.sortReserves(
+        (reserve0, reserve1) = vSwapLibrary.sortReserves(
             tokenA,
             IvPair(pool).token0(),
             reserve0,
@@ -113,7 +113,7 @@ contract vRouter is IvRouter {
         if (reserve0 == 0 && reserve1 == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            uint256 amountBOptimal = vSwapMath.quote(
+            uint256 amountBOptimal = vSwapLibrary.quote(
                 amountADesired,
                 reserve0,
                 reserve1
@@ -126,7 +126,7 @@ contract vRouter is IvRouter {
                 );
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint256 amountAOptimal = vSwapMath.quote(
+                uint256 amountAOptimal = vSwapLibrary.quote(
                     amountBDesired,
                     reserve0,
                     reserve1
@@ -282,7 +282,7 @@ contract vRouter is IvRouter {
         VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
 
         return
-            vSwapMath.getAmountIn(
+            vSwapLibrary.getAmountIn(
                 amountOut,
                 vPool.reserve0,
                 vPool.reserve1,
@@ -300,7 +300,7 @@ contract vRouter is IvRouter {
 
         (address jk0, address jk1) = IvPair(jkPair).getTokens();
 
-        VirtualPoolTokens memory vPoolTokens = vSwapMath.findCommonToken(
+        VirtualPoolTokens memory vPoolTokens = vSwapLibrary.findCommonToken(
             ik0,
             ik1,
             jk0,
@@ -312,7 +312,7 @@ contract vRouter is IvRouter {
         (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
         (uint256 jkReserve0, uint256 jkReserve1) = IvPair(jkPair).getReserves();
 
-        vPool = vSwapMath.calculateVPool(
+        vPool = vSwapLibrary.calculateVPool(
             vPoolTokens.ik0 == ik0 ? ikReserve0 : ikReserve1,
             vPoolTokens.ik0 == ik0 ? ikReserve1 : ikReserve0,
             vPoolTokens.jk0 == jk0 ? jkReserve0 : jkReserve1,
@@ -332,7 +332,7 @@ contract vRouter is IvRouter {
         VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
 
         return
-            vSwapMath.getAmountOut(
+            vSwapLibrary.getAmountOut(
                 amountIn,
                 vPool.reserve0,
                 vPool.reserve1,
@@ -349,14 +349,14 @@ contract vRouter is IvRouter {
 
         (uint256 reserve0, uint256 reserve1) = IvPair(pair).getReserves();
 
-        (reserve0, reserve1) = vSwapMath.sortReserves(
+        (reserve0, reserve1) = vSwapLibrary.sortReserves(
             tokenA,
             IvPair(pair).token0(),
             reserve0,
             reserve1
         );
 
-        quote = vSwapMath.quote(amount, reserve0, reserve1);
+        quote = vSwapLibrary.quote(amount, reserve0, reserve1);
     }
 
     function getAmountOut(
@@ -368,14 +368,14 @@ contract vRouter is IvRouter {
 
         (uint256 reserve0, uint256 reserve1) = IvPair(pair).getReserves();
 
-        (reserve0, reserve1) = vSwapMath.sortReserves(
+        (reserve0, reserve1) = vSwapLibrary.sortReserves(
             tokenA,
             IvPair(pair).token0(),
             reserve0,
             reserve1
         );
 
-        amountOut = vSwapMath.getAmountOut(
+        amountOut = vSwapLibrary.getAmountOut(
             amountIn,
             reserve0,
             reserve1,
@@ -392,14 +392,14 @@ contract vRouter is IvRouter {
 
         (uint256 reserve0, uint256 reserve1) = IvPair(pair).getReserves();
 
-        (reserve0, reserve1) = vSwapMath.sortReserves(
+        (reserve0, reserve1) = vSwapLibrary.sortReserves(
             tokenA,
             IvPair(pair).token0(),
             reserve0,
             reserve1
         );
 
-        amountIn = vSwapMath.getAmountIn(
+        amountIn = vSwapLibrary.getAmountIn(
             amountOut,
             reserve0,
             reserve1,

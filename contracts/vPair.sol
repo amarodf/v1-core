@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/IvPair.sol";
 import "./interfaces/IvPairFactory.sol";
 import "./interfaces/IvFlashSwapCallback.sol";
-import "./libraries/vSwapMath.sol";
+import "./libraries/vSwapLibrary.sol";
 import "./vSwapERC20.sol";
 
 contract vPair is IvPair, vSwapERC20 {
@@ -106,14 +106,14 @@ contract vPair is IvPair, vSwapERC20 {
 
         address _inputToken = tokenOut == token0 ? token1 : token0;
 
-        (uint256 _reserve0, uint256 _reserve1) = vSwapMath.sortReserves(
+        (uint256 _reserve0, uint256 _reserve1) = vSwapLibrary.sortReserves(
             _inputToken,
             token0,
             reserve0,
             reserve1
         );
 
-        uint256 _expectedAmountIn = vSwapMath.getAmountIn(
+        uint256 _expectedAmountIn = vSwapLibrary.getAmountIn(
             amountOut,
             _reserve0,
             _reserve1,
@@ -147,7 +147,7 @@ contract vPair is IvPair, vSwapERC20 {
         for (uint256 i = 0; i < whitelist.length; ++i) {
             uint256 _rReserve = reservesBaseValue[whitelist[i]];
             if (_rReserve > 0) {
-                rRatio = vSwapMath.calculateReserveRatio(
+                rRatio = vSwapLibrary.calculateReserveRatio(
                     rRatio,
                     _rReserve,
                     _baseReserve
@@ -170,7 +170,7 @@ contract vPair is IvPair, vSwapERC20 {
     {
         (address ik0, address ik1) = IvPair(ikPair).getTokens();
         (address jk0, address jk1) = (token0, token1); //gas saving
-        VirtualPoolTokens memory vPoolTokens = vSwapMath.findCommonToken(
+        VirtualPoolTokens memory vPoolTokens = vSwapLibrary.findCommonToken(
             ik0,
             ik1,
             jk0,
@@ -182,7 +182,7 @@ contract vPair is IvPair, vSwapERC20 {
         (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
         (uint256 _reserve0, uint256 _reserve1) = (reserve0, reserve1); //gas saving
 
-        vPool = vSwapMath.calculateVPool(
+        vPool = vSwapLibrary.calculateVPool(
             vPoolTokens.ik0 == ik0 ? ikReserve0 : ikReserve1,
             vPoolTokens.ik0 == ik0 ? ikReserve1 : ikReserve0,
             vPoolTokens.jk0 == jk0 ? _reserve0 : _reserve1,
@@ -219,7 +219,7 @@ contract vPair is IvPair, vSwapERC20 {
 
         SafeERC20.safeTransfer(IERC20(vPool.token1), to, amountOut);
 
-        uint256 requiredAmountIn = vSwapMath.getAmountIn(
+        uint256 requiredAmountIn = vSwapLibrary.getAmountIn(
             amountOut,
             vPool.reserve0,
             vPool.reserve1,
@@ -247,7 +247,7 @@ contract vPair is IvPair, vSwapERC20 {
             (
                 (vPool.token1 == token0)
                     ? amountOut
-                    : vSwapMath.quote(amountOut, reserve1, reserve0)
+                    : vSwapLibrary.quote(amountOut, reserve1, reserve0)
             );
 
         //update reserve balance for reserve
@@ -284,10 +284,9 @@ contract vPair is IvPair, vSwapERC20 {
             );
         }
 
+        //substract reserve ratio PCT from minted liquidity tokens amount
         uint256 reserveRatio = this.calculateReserveRatio();
-
-        // deduct reserve ratio from liquidity
-        liquidity = vSwapMath.substractPCT(liquidity, reserveRatio);
+        liquidity = vSwapLibrary.substractPCT(liquidity, reserveRatio);
 
         require(liquidity > 0, "ILM");
 
@@ -332,7 +331,7 @@ contract vPair is IvPair, vSwapERC20 {
 
                     SafeERC20.safeTransfer(IERC20(_wlI), to, reserveAmountOut);
 
-                    uint256 amountPCT = vSwapMath.percent(
+                    uint256 amountPCT = vSwapLibrary.percent(
                         reserveAmountOut,
                         reserveBalance
                     );

@@ -2,7 +2,7 @@
 // pragma solidity =0.8.1;
 // import "../interfaces/IvFlashSwapCallback.sol";
 // import "../interfaces/IvPair.sol";
-// import "../libraries/vSwapMath.sol";
+// import "../libraries/vSwapLibrary.sol";
 // import "..//ERC20/IERC20.sol";
 // import "../interfaces/IvPairFactory.sol";
 // import "../interfaces/IvRouter.sol";
@@ -40,7 +40,7 @@
 //             IvPair(poolAddress).reserve1()
 //         );
 
-//         uint256 bidAmount = vSwapMath.getAmountIn(
+//         uint256 bidAmount = vSwapLibrary.getAmountIn(
 //             amount,
 //             reserve0,
 //             reserve1,

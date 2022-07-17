@@ -3,7 +3,7 @@ const chai = require("chai");
 const { assert } = require("chai");
 
 const vRouter = artifacts.require("vRouter");
-const vSwapMath = artifacts.require("vSwapMath");
+const vSwapLibrary = artifacts.require("vSwapLibrary");
 const vPair = artifacts.require("vPair");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const vPairFactory = artifacts.require("vPairFactory");
@@ -31,7 +31,7 @@ contract("vPair", (accounts) => {
 
   const issueAmount = web3.utils.toWei("100000000000000", "ether");
 
-  let vPairFactoryInstance, vRouterInstance, vSwapMathInstance, vPairInstance;
+  let vPairFactoryInstance, vRouterInstance, vSwapLibraryInstance, vPairInstance;
 
   before(async () => {
     tokenA = await ERC20.new("tokenA", "A", issueAmount, accounts[0]);
@@ -42,7 +42,7 @@ contract("vPair", (accounts) => {
 
     vPairFactoryInstance = await vPairFactory.deployed();
     vRouterInstance = await vRouter.deployed();
-    vSwapMathInstance = await vSwapMath.deployed();
+    vSwapLibraryInstance = await vSwapLibrary.deployed();
 
     await tokenA.approve(vRouterInstance.address, issueAmount);
     await tokenB.approve(vRouterInstance.address, issueAmount);

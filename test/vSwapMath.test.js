@@ -1,7 +1,7 @@
 const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
-const vSwapMath = artifacts.require("vSwapMath");
+const vSwapLibrary = artifacts.require("vSwapLibrary");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const { assert } = require("chai");
@@ -13,7 +13,7 @@ async function getFutureBlockTimestamp() {
   return block.timestamp + 1000000;
 }
 
-contract("vSwapMath", (accounts) => {
+contract("vSwapLibrary", (accounts) => {
   function fromWeiToNumber(number) {
     return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
   }
@@ -27,7 +27,7 @@ contract("vSwapMath", (accounts) => {
 
   const issueAmount = web3.utils.toWei("100000000000000", "ether");
 
-  let vPairFactoryInstance, vRouterInstance, vSwapMathInstance;
+  let vPairFactoryInstance, vRouterInstance, vSwapLibraryInstance;
 
   before(async () => {
     tokenA = await ERC20.new("tokenA", "A", issueAmount, accounts[0]);
@@ -40,7 +40,7 @@ contract("vSwapMath", (accounts) => {
 
     vPairFactoryInstance = await vPairFactory.deployed();
     vRouterInstance = await vRouter.deployed();
-    vSwapMathInstance = await vSwapMath.deployed();
+    vSwapLibraryInstance = await vSwapLibrary.deployed();
 
     await tokenA.approve(vRouterInstance.address, issueAmount);
     await tokenB.approve(vRouterInstance.address, issueAmount);
@@ -265,14 +265,14 @@ contract("vSwapMath", (accounts) => {
   it("Should calculate percents", async () => {
     let nominator = web3.utils.toWei("10", "ether");
     let denominator = web3.utils.toWei("20", "ether");
-    let percent = await vSwapMathInstance.percent(nominator, denominator);
+    let percent = await vSwapLibraryInstance.percent(nominator, denominator);
     percent = fromWeiToNumber(percent);
 
     assert.equal(percent, 0.5);
 
     nominator = web3.utils.toWei("100", "ether");
     denominator = web3.utils.toWei("500", "ether");
-    percent = await vSwapMathInstance.percent(nominator, denominator);
+    percent = await vSwapLibraryInstance.percent(nominator, denominator);
     percent = fromWeiToNumber(percent);
 
     assert.equal(percent, 0.2);
@@ -323,7 +323,7 @@ contract("vSwapMath", (accounts) => {
 
     let reserveRatio = await pool.calculateReserveRatio();
 
-    let lpTokens = await vSwapMathInstance.substractPCT(
+    let lpTokens = await vSwapLibraryInstance.substractPCT(
       web3.utils.toWei(liquidity.toString(), "ether"),
       reserveRatio
     );
@@ -347,7 +347,7 @@ contract("vSwapMath", (accounts) => {
     const rRatio = 0;
     _rReserve = web3.utils.toWei("10", "ether");
 
-    const reserveRatio = await vSwapMathInstance.calculateReserveRatio(
+    const reserveRatio = await vSwapLibraryInstance.calculateReserveRatio(
       0,
       _rReserve,
       baseReserve
@@ -370,14 +370,14 @@ contract("vSwapMath", (accounts) => {
     const reserve0 = await pool.reserve0();
     const reserve1 = await pool.reserve1();
 
-    const amountIn = await vSwapMathInstance.getAmountIn(
+    const amountIn = await vSwapLibraryInstance.getAmountIn(
       X,
       reserve0,
       reserve1,
       fee
     );
 
-    const amountOut = await vSwapMathInstance.getAmountOut(
+    const amountOut = await vSwapLibraryInstance.getAmountOut(
       amountIn,
       reserve0,
       reserve1,
@@ -399,7 +399,7 @@ contract("vSwapMath", (accounts) => {
     let poolToken0 = await pool.token0();
     let poolToken1 = await pool.token1();
 
-    let reserves = await vSwapMathInstance.sortReserves(
+    let reserves = await vSwapLibraryInstance.sortReserves(
       poolToken0,
       poolToken0,
       poolReserves._reserve0,
@@ -412,7 +412,7 @@ contract("vSwapMath", (accounts) => {
       "Reserve not in order"
     );
 
-    let reserves2 = await vSwapMathInstance.sortReserves(
+    let reserves2 = await vSwapLibraryInstance.sortReserves(
       poolToken1,
       poolToken0,
       poolReserves._reserve0,
@@ -427,7 +427,7 @@ contract("vSwapMath", (accounts) => {
   });
 
   it("Should find common token and assing to ik1 and jk1", async () => {
-    let tokens = await vSwapMathInstance.findCommonToken(
+    let tokens = await vSwapLibraryInstance.findCommonToken(
       tokenA.address,
       tokenB.address,
       tokenC.address,
@@ -436,7 +436,7 @@ contract("vSwapMath", (accounts) => {
 
     assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
 
-    tokens = await vSwapMathInstance.findCommonToken(
+    tokens = await vSwapLibraryInstance.findCommonToken(
       tokenB.address,
       tokenA.address,
       tokenA.address,
@@ -445,7 +445,7 @@ contract("vSwapMath", (accounts) => {
 
     assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
 
-    tokens = await vSwapMathInstance.findCommonToken(
+    tokens = await vSwapLibraryInstance.findCommonToken(
       tokenC.address,
       tokenA.address,
       tokenB.address,
@@ -454,7 +454,7 @@ contract("vSwapMath", (accounts) => {
 
     assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
 
-    tokens = await vSwapMathInstance.findCommonToken(
+    tokens = await vSwapLibraryInstance.findCommonToken(
       tokenC.address,
       tokenA.address,
       tokenC.address,
