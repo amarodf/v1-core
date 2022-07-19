@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 
 import "./types.sol";
 import "./libraries/vSwapLibrary.sol";
@@ -15,7 +14,6 @@ import "./interfaces/IvPairFactory.sol";
 contract vRouter is IvRouter {
     address public override factory;
     address public immutable override owner;
-    address public immutable override WETH;
 
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -27,14 +25,9 @@ contract vRouter is IvRouter {
         _;
     }
 
-    receive() external payable {
-        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
-    }
-
-    constructor(address _factory, address _WETH) {
+    constructor(address _factory) {
         owner = msg.sender;
         factory = _factory;
-        WETH = _WETH;
     }
 
     function swap(
@@ -83,48 +76,6 @@ contract vRouter is IvRouter {
 
     function changeFactory(address _factory) external override onlyOwner {
         factory = _factory;
-    }
-
-    function _addLiquidity2(
-        address tokenA,
-        address tokenB,
-        uint256 amountADesired,
-        uint256 amountBDesired,
-        uint256 amountAMin,
-        uint256 amountBMin
-    ) external view returns (uint256) {
-        address pool = IvPairFactory(factory).getPair(tokenA, tokenB);
-        // create the pair if it doesn't exist yet
-
-        (uint256 reserve0, uint256 reserve1) = IvPair(pool).getReserves();
-
-        uint256 amountBOptimal = vSwapLibrary.quote(
-            reserve0,
-            reserve1,
-            amountADesired
-        );
-
-        return amountBOptimal;
-
-        // if (amountBOptimal <= amountBDesired) {
-        //     require(
-        //         amountBOptimal >= amountBMin,
-        //         "VSWAP: INSUFFICIENT_B_AMOUNT"
-        //     );
-        //     (amountA, amountB) = (amountADesired, amountBOptimal);
-        // } else {
-        //     uint256 amountAOptimal = vSwapLibrary.quote(
-        //         amountBDesired,
-        //         reserve0,
-        //         reserve1
-        //     );
-
-        //     assert(amountAOptimal <= amountADesired);
-        //     require(
-        //         amountAOptimal >= amountAMin,
-        //         "VSWAP: INSUFFICIENT_A_AMOUNT"
-        //     );
-        // }
     }
 
     function _addLiquidity(
@@ -209,46 +160,6 @@ contract vRouter is IvRouter {
         liquidity = IvPair(pair).mint(to);
     }
 
-    function addLiquidityETH(
-        address token,
-        uint256 amountTokenDesired,
-        uint256 amountTokenMin,
-        uint256 amountETHMin,
-        address to,
-        uint256 deadline
-    )
-        external
-        payable
-        override
-        ensure(deadline)
-        returns (
-            uint256 amountToken,
-            uint256 amountETH,
-            uint256 liquidity
-        )
-    {
-        (amountToken, amountETH) = _addLiquidity(
-            token,
-            WETH,
-            amountTokenDesired,
-            msg.value,
-            amountTokenMin,
-            amountETHMin
-        );
-        address pair = IvPairFactory(factory).getPair(token, WETH);
-        SafeERC20.safeTransferFrom(
-            IERC20(token),
-            msg.sender,
-            pair,
-            amountToken
-        );
-        IWETH(WETH).deposit{value: amountETH}();
-        assert(IWETH(WETH).transfer(pair, amountETH));
-        liquidity = IvPair(pair).mint(to);
-        if (msg.value > amountETH)
-            TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
-    }
-
     function removeLiquidity(
         address tokenA,
         address tokenB,
@@ -274,34 +185,6 @@ contract vRouter is IvRouter {
         require(amountB >= amountBMin, "VSWAP: INSUFFICIENT_B_AMOUNT");
     }
 
-    function removeLiquidityETH(
-        address token,
-        uint256 liquidity,
-        uint256 amountTokenMin,
-        uint256 amountETHMin,
-        address to,
-        uint256 deadline
-    )
-        public
-        virtual
-        override
-        ensure(deadline)
-        returns (uint256 amountToken, uint256 amountETH)
-    {
-        (amountToken, amountETH) = this.removeLiquidity(
-            token,
-            WETH,
-            liquidity,
-            amountTokenMin,
-            amountETHMin,
-            address(this),
-            deadline
-        );
-        SafeERC20.safeTransfer(IERC20(token), to, amountToken);
-        IWETH(WETH).withdraw(amountETH);
-        TransferHelper.safeTransferETH(to, amountETH);
-    }
-
     function getVirtualAmountIn(
         address jkPair,
         address ikPair,
@@ -309,13 +192,27 @@ contract vRouter is IvRouter {
     ) external view override returns (uint256 amountIn) {
         VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
 
-        return
-            vSwapLibrary.getAmountIn(
-                amountOut,
-                vPool.reserve0,
-                vPool.reserve1,
-                IvPair(jkPair).vFee()
-            );
+        amountIn = vSwapLibrary.getAmountIn(
+            amountOut,
+            vPool.reserve0,
+            vPool.reserve1,
+            vPool.fee
+        );
+    }
+
+    function getVirtualAmountOut(
+        address jkPair,
+        address ikPair,
+        uint256 amountIn
+    ) external view override returns (uint256 amountOut) {
+        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
+
+        amountOut = vSwapLibrary.getAmountOut(
+            amountIn,
+            vPool.reserve0,
+            vPool.reserve1,
+            vPool.fee
+        );
     }
 
     function getVirtualPool(address jkPair, address ikPair)
@@ -350,22 +247,9 @@ contract vRouter is IvRouter {
         vPool.token0 = vPoolTokens.ik0;
         vPool.token1 = vPoolTokens.jk0;
         vPool.commonToken = vPoolTokens.ik1;
-    }
 
-    function getVirtualAmountOut(
-        address jkPair,
-        address ikPair,
-        uint256 amountIn
-    ) external view override returns (uint256 amountOut) {
-        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
-
-        return
-            vSwapLibrary.getAmountOut(
-                amountIn,
-                vPool.reserve0,
-                vPool.reserve1,
-                996
-            );
+        //fee
+        vPool.fee = IvPair(jkPair).vFee();
     }
 
     function quote(
