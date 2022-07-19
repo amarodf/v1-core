@@ -269,8 +269,6 @@ contract("vSwapLibrary", (accounts) => {
       liquidity,
       web3.utils.toWei("1000", "ether")
     );
-    console.log("res " + res);
-    console.log("num1 " + fromWeiToNumber(res));
 
     assert.equal(fromWeiToNumber(res), 99.009901);
   });
@@ -349,65 +347,6 @@ contract("vSwapLibrary", (accounts) => {
     percent = fromWeiToNumber(percent);
 
     assert.equal(percent, 0.2);
-  });
-
-  it("Should deduct reserve ratio from lp tokens issue", async () => {
-    const address = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-
-    const pool = await vPair.at(address);
-
-    let poolToken0 = await pool.token0();
-    let poolToken1 = await pool.token1();
-
-    let token0 = await ERC20.at(poolToken0);
-    let token1 = await ERC20.at(poolToken1);
-
-    let poolReserve0 = await pool.reserve0();
-    let poolReserve1 = await pool.reserve1();
-
-    let balance0 = await token0.balanceOf(pool.address);
-    let balance1 = await token1.balanceOf(pool.address);
-
-    poolReserve0 = fromWeiToNumber(poolReserve0);
-    poolReserve1 = fromWeiToNumber(poolReserve1);
-
-    balance0 = fromWeiToNumber(balance0);
-    balance1 = fromWeiToNumber(balance1);
-
-    balance0 = balance0 + 30;
-    balance1 = balance1 + 10;
-
-    let amount0 = balance0 - poolReserve0;
-    let amount1 = balance1 - poolReserve1;
-
-    let _totalSupply = await pool.totalSupply();
-
-    _totalSupply = fromWeiToNumber(_totalSupply);
-
-    let liquidity = Math.min(
-      (amount0 * _totalSupply) / poolReserve0,
-      (amount1 * _totalSupply) / poolReserve1
-    );
-
-    await addCToPoolAB();
-    await addDToPoolAB();
-
-    let reserveRatio = await pool.calculateReserveRatio();
-
-    let lpTokens = await vSwapLibraryInstance.substractPCT(
-      web3.utils.toWei(liquidity.toString(), "ether"),
-      reserveRatio
-    );
-
-    lpTokens = fromWeiToNumber(lpTokens);
-    let inversedReserveRatio = 1 - fromWeiToNumber(reserveRatio) / 100000;
-    let deductedL = (liquidity * inversedReserveRatio).toFixed(2);
-    let roundedLpTokens = (lpTokens * 1).toFixed(2);
-
-    assert.equal(deductedL, roundedLpTokens);
   });
 
   it("Should reserve ratio is larger than 0", async () => {
@@ -537,4 +476,63 @@ contract("vSwapLibrary", (accounts) => {
 
     assert.equal(tokens.ik1, tokens.jk1, "ik1 not equal to jk1");
   });
+
+  // it("Should deduct reserve ratio from lp tokens issue", async () => {
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+
+  //   const pool = await vPair.at(address);
+
+  //   let poolToken0 = await pool.token0();
+  //   let poolToken1 = await pool.token1();
+
+  //   let token0 = await ERC20.at(poolToken0);
+  //   let token1 = await ERC20.at(poolToken1);
+
+  //   let poolReserve0 = await pool.reserve0();
+  //   let poolReserve1 = await pool.reserve1();
+
+  //   let balance0 = await token0.balanceOf(pool.address);
+  //   let balance1 = await token1.balanceOf(pool.address);
+
+  //   poolReserve0 = fromWeiToNumber(poolReserve0);
+  //   poolReserve1 = fromWeiToNumber(poolReserve1);
+
+  //   balance0 = fromWeiToNumber(balance0);
+  //   balance1 = fromWeiToNumber(balance1);
+
+  //   balance0 = balance0 + 30;
+  //   balance1 = balance1 + 10;
+
+  //   let amount0 = balance0 - poolReserve0;
+  //   let amount1 = balance1 - poolReserve1;
+
+  //   let _totalSupply = await pool.totalSupply();
+
+  //   _totalSupply = fromWeiToNumber(_totalSupply);
+
+  //   let liquidity = Math.min(
+  //     (amount0 * _totalSupply) / poolReserve0,
+  //     (amount1 * _totalSupply) / poolReserve1
+  //   );
+
+  //   await addCToPoolAB();
+  //   await addDToPoolAB();
+
+  //   let reserveRatio = await pool.calculateReserveRatio();
+
+  //   let lpTokens = await vSwapLibraryInstance.substractPCT(
+  //     web3.utils.toWei(liquidity.toString(), "ether"),
+  //     reserveRatio
+  //   );
+
+  //   lpTokens = fromWeiToNumber(lpTokens);
+  //   let inversedReserveRatio = 1 - fromWeiToNumber(reserveRatio) / 100000;
+  //   let deductedL = (liquidity * inversedReserveRatio).toFixed(2);
+  //   let roundedLpTokens = (lpTokens * 1).toFixed(2);
+
+  //   assert.equal(deductedL, roundedLpTokens);
+  // });
 });
