@@ -179,7 +179,7 @@ contract vRouter is IvRouter {
         require(pair > address(0), "VSWAP: PAIR_DONT_EXIST");
         SafeERC20.safeTransferFrom(IERC20(pair), msg.sender, pair, liquidity);
 
-        (uint256 amountA, uint256 amountB) = IvPair(pair).burn(to);
+        (amountA, amountB) = IvPair(pair).burn(to);
 
         require(amountA >= amountAMin, "VSWAP: INSUFFICIENT_A_AMOUNT");
         require(amountB >= amountBMin, "VSWAP: INSUFFICIENT_B_AMOUNT");
