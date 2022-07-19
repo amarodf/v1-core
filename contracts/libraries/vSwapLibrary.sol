@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../types.sol";
+import "../interfaces/IvPair.sol";
 
 library vSwapLibrary {
     uint256 private constant EPSILON = 1 wei;
@@ -123,5 +124,61 @@ library vSwapLibrary {
         return
             (liquidity * ((MULTIPLIER**2) / (MULTIPLIER + _reserveRatio))) /
             MULTIPLIER;
+    }
+
+    function getVirtualPoolBase(
+        address jkToken0,
+        address jkToken1,
+        uint256 jkReserve0,
+        uint256 jkReserve1,
+        uint256 jkvFee,
+        address ikPair
+    ) public view returns (VirtualPoolModel memory vPool) {
+        (address ik0, address ik1) = IvPair(ikPair).getTokens();
+        (address jk0, address jk1) = (jkToken0, jkToken1); //gas saving
+
+        VirtualPoolTokens memory vPoolTokens = findCommonToken(
+            ik0,
+            ik1,
+            jk0,
+            jk1
+        );
+
+        require(vPoolTokens.ik1 == vPoolTokens.jk1, "IOP");
+
+        (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
+        (uint256 _reserve0, uint256 _reserve1) = (jkReserve0, jkReserve1); //gas saving
+
+        vPool = calculateVPool(
+            vPoolTokens.ik0 == ik0 ? ikReserve0 : ikReserve1,
+            vPoolTokens.ik0 == ik0 ? ikReserve1 : ikReserve0,
+            vPoolTokens.jk0 == jk0 ? _reserve0 : _reserve1,
+            vPoolTokens.jk0 == jk0 ? _reserve1 : _reserve0
+        );
+
+        vPool.token0 = vPoolTokens.ik0;
+        vPool.token1 = vPoolTokens.jk0;
+        vPool.commonToken = vPoolTokens.ik1;
+
+        vPool.fee = jkvFee;
+    }
+
+    function getVirtualPool(address jkPair, address ikPair)
+        public
+        view
+        returns (VirtualPoolModel memory vPool)
+    {
+        (address jk0, address jk1) = IvPair(jkPair).getTokens();
+        (uint256 _reserve0, uint256 _reserve1) = IvPair(jkPair).getReserves();
+        uint256 vFee = IvPair(jkPair).vFee();
+
+        vPool = getVirtualPoolBase(
+            jk0,
+            jk1,
+            _reserve0,
+            _reserve1,
+            vFee,
+            ikPair
+        );
     }
 }

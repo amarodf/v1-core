@@ -221,35 +221,7 @@ contract vRouter is IvRouter {
         override
         returns (VirtualPoolModel memory vPool)
     {
-        (address ik0, address ik1) = IvPair(ikPair).getTokens();
-
-        (address jk0, address jk1) = IvPair(jkPair).getTokens();
-
-        VirtualPoolTokens memory vPoolTokens = vSwapLibrary.findCommonToken(
-            ik0,
-            ik1,
-            jk0,
-            jk1
-        );
-
-        require(vPoolTokens.ik1 == vPoolTokens.jk1, "IOP");
-
-        (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
-        (uint256 jkReserve0, uint256 jkReserve1) = IvPair(jkPair).getReserves();
-
-        vPool = vSwapLibrary.calculateVPool(
-            vPoolTokens.ik0 == ik0 ? ikReserve0 : ikReserve1,
-            vPoolTokens.ik0 == ik0 ? ikReserve1 : ikReserve0,
-            vPoolTokens.jk0 == jk0 ? jkReserve0 : jkReserve1,
-            vPoolTokens.jk0 == jk0 ? jkReserve1 : jkReserve0
-        );
-
-        vPool.token0 = vPoolTokens.ik0;
-        vPool.token1 = vPoolTokens.jk0;
-        vPool.commonToken = vPoolTokens.ik1;
-
-        //fee
-        vPool.fee = IvPair(jkPair).vFee();
+        vPool = vSwapLibrary.getVirtualPool(jkPair, ikPair);
     }
 
     function quote(

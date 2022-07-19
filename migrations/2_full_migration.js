@@ -36,8 +36,6 @@ async function queryDB(sql) {
   });
 }
 
-const WETH = "0x0206953b5845106e8335E3e2224d1Fb2f90DB5c5";
-
 module.exports = async function (deployer, network) {
   console.log("network name: " + network);
 
@@ -59,7 +57,7 @@ module.exports = async function (deployer, network) {
   let vPairFactoryAddress =
   vPairFactory.networks[Object.keys(vPairFactory.networks)[0]].address;
 
-  await deployer.deploy(vRouter, vPairFactoryAddress, WETH);
+  await deployer.deploy(vRouter, vPairFactoryAddress);
 
   // const enviroment = network == "dev" ? 0 : 1;
   const enviroment = 1;

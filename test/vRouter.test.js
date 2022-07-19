@@ -315,7 +315,6 @@ contract("vRouter", (accounts) => {
       ikPair,
       amountIn
     );
-
     assert(amountOut > 0);
   });
 
