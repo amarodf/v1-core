@@ -68,21 +68,6 @@ contract vPair is IvPair, vSwapERC20 {
         max_whitelist_count = _max_whitelist_count;
     }
 
-    function getVirtualPool(address ikPair)
-        internal
-        view
-        returns (VirtualPoolModel memory vPool)
-    {
-        vPool = vSwapLibrary.getVirtualPoolBase(
-            token0,
-            token1,
-            reserve0,
-            reserve1,
-            vFee,
-            ikPair
-        );
-    }
-
     function _update(uint256 balance0, uint256 balance1) internal {
         reserve0 = balance0;
         reserve1 = balance1;
@@ -159,7 +144,14 @@ contract vPair is IvPair, vSwapERC20 {
         address to,
         bytes calldata data
     ) external override lock {
-        VirtualPoolModel memory vPool = getVirtualPool(ikPair);
+        VirtualPoolModel memory vPool = vSwapLibrary.getVirtualPoolBase(
+            token0,
+            token1,
+            reserve0,
+            reserve1,
+            vFee,
+            ikPair
+        );
 
         // validate ikPair with factory
         require(
