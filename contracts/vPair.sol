@@ -272,12 +272,10 @@ contract vPair is IvPair, vSwapERC20 {
 
         //substract reserve ratio PCT from minted liquidity tokens amount
         uint256 reserveRatio = this.calculateReserveRatio();
-        // liquidity = vSwapLibrary.substractReserveFromLPTokens(
-        //     liquidity,
-        //     reserveRatio
-        // );
-        liquidity = vSwapLibrary.substractPCT(liquidity, reserveRatio);
-
+        liquidity = vSwapLibrary.substractReserveFromLPTokens(
+            liquidity,
+            reserveRatio
+        );
         require(liquidity > 0, "ILM");
 
         _mint(to, liquidity);

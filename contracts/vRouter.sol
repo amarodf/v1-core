@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
- pragma solidity ^0.8.0;  
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -85,6 +85,48 @@ contract vRouter is IvRouter {
         factory = _factory;
     }
 
+    function _addLiquidity2(
+        address tokenA,
+        address tokenB,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin
+    ) external view returns (uint256) {
+        address pool = IvPairFactory(factory).getPair(tokenA, tokenB);
+        // create the pair if it doesn't exist yet
+
+        (uint256 reserve0, uint256 reserve1) = IvPair(pool).getReserves();
+
+        uint256 amountBOptimal = vSwapLibrary.quote(
+            reserve0,
+            reserve1,
+            amountADesired
+        );
+
+        return amountBOptimal;
+
+        // if (amountBOptimal <= amountBDesired) {
+        //     require(
+        //         amountBOptimal >= amountBMin,
+        //         "VSWAP: INSUFFICIENT_B_AMOUNT"
+        //     );
+        //     (amountA, amountB) = (amountADesired, amountBOptimal);
+        // } else {
+        //     uint256 amountAOptimal = vSwapLibrary.quote(
+        //         amountBDesired,
+        //         reserve0,
+        //         reserve1
+        //     );
+
+        //     assert(amountAOptimal <= amountADesired);
+        //     require(
+        //         amountAOptimal >= amountAMin,
+        //         "VSWAP: INSUFFICIENT_A_AMOUNT"
+        //     );
+        // }
+    }
+
     function _addLiquidity(
         address tokenA,
         address tokenB,
@@ -98,19 +140,15 @@ contract vRouter is IvRouter {
         if (pool == address(0))
             pool = IvPairFactory(factory).createPair(tokenA, tokenB);
 
-        (uint256 reserve0, uint256 reserve1) = (
-            IvPair(pool).reserve0(),
-            IvPair(pool).reserve1()
-        );
+        (uint256 reserve0, uint256 reserve1) = IvPair(pool).getReserves();
 
         if (reserve0 == 0 && reserve1 == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-          
             uint256 amountBOptimal = vSwapLibrary.quote(
-                amountADesired,
                 reserve0,
-                reserve1
+                reserve1,
+                amountADesired
             );
 
             if (amountBOptimal <= amountBDesired) {
@@ -121,9 +159,9 @@ contract vRouter is IvRouter {
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
                 uint256 amountAOptimal = vSwapLibrary.quote(
-                    amountBDesired,
+                    reserve1,
                     reserve0,
-                    reserve1
+                    amountBDesired
                 );
 
                 assert(amountAOptimal <= amountADesired);
@@ -334,7 +372,7 @@ contract vRouter is IvRouter {
         address tokenA,
         address tokenB,
         uint256 amount
-    ) external view override returns (uint256 quote) {
+    ) external view override returns (uint256) {
         address pair = IvPairFactory(factory).getPair(tokenA, tokenB);
 
         (uint256 reserve0, uint256 reserve1) = IvPair(pair).getReserves();
@@ -346,7 +384,7 @@ contract vRouter is IvRouter {
             reserve1
         );
 
-        quote = vSwapLibrary.quote(amount, reserve0, reserve1);
+        return vSwapLibrary.quote(amount, reserve0, reserve1);
     }
 
     function getAmountOut(

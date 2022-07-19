@@ -1,4 +1,4 @@
- pragma solidity ^0.8.0;  
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../types.sol";
@@ -116,27 +116,12 @@ library vSwapLibrary {
             : (reserve1, reserve0);
     }
 
-    function substractPCT(uint256 _base, uint256 _percentage)
-        public
-        pure
-        returns (uint256)
-    {
-        if (_percentage > 0) {
-            return (_base * (MULTIPLIER - _percentage)) / MULTIPLIER;
-        }
-
-        return _base;
+    function substractReserveFromLPTokens(
+        uint256 liquidity,
+        uint256 _reserveRatio
+    ) public pure returns (uint256) {
+        return
+            (liquidity * ((MULTIPLIER**2) / (MULTIPLIER + _reserveRatio))) /
+            MULTIPLIER;
     }
-
-    // function substractReserveFromLPTokens(
-    //     uint256 liquidity,
-    //     uint256 _reserveRatio
-    // ) public pure returns (uint256 actLiquidity) {
-    //     if (_reserveRatio > 0) {
-    //         actLiquidity = (liquidity *
-    //             (MULTIPLIER / (MULTIPLIER + _reserveRatio)));
-    //     }
-
-    //     return actLiquidity;
-    // }
 }

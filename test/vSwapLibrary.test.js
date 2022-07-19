@@ -1,3 +1,5 @@
+const { assert } = require("chai");
+
 const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
@@ -252,6 +254,26 @@ contract("vSwapLibrary", (accounts) => {
       futureTs
     );
   }
+
+  it("Should substract reserves from lp tokens", async () => {
+    const liquidity = web3.utils.toWei("100", "ether");
+
+    let res = await vSwapLibraryInstance.substractReserveFromLPTokens(
+      liquidity,
+      web3.utils.toWei("2000", "ether")
+    );
+
+    assert.equal(fromWeiToNumber(res), 98.039216);
+
+    res = await vSwapLibraryInstance.substractReserveFromLPTokens(
+      liquidity,
+      web3.utils.toWei("1000", "ether")
+    );
+    console.log("res " + res);
+    console.log("num1 " + fromWeiToNumber(res));
+
+    assert.equal(fromWeiToNumber(res), 99.009901);
+  });
 
   it("Should calculate correctly getAmountIn", async () => {
     const address = await vPairFactoryInstance.getPair(

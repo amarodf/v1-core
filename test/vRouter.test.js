@@ -568,10 +568,14 @@ contract("vRouter", (accounts) => {
     let reserve0 = await pool.reserve0();
     let reserve1 = await pool.reserve1();
 
+    const amountBDesiredVSwap = await vSwapLibraryInstance.quote(
+      reserve0,
+      reserve1,
+      amountADesired
+    );
+
     let totalBalanceBefore0 = reserve0;
     let totalBalanceBefore1 = reserve1;
-
-    const lpSupplyBefore = await pool.totalSupply();
 
     const futureTs = await getFutureBlockTimestamp();
 
@@ -588,8 +592,6 @@ contract("vRouter", (accounts) => {
 
     reserve0 = await pool.reserve0();
     reserve1 = await pool.reserve1();
-
-    const lpSupplyAfter = await pool.totalSupply();
 
     let totalBalanceAfter0 = reserve0;
     let totalBalanceAfter1 = reserve1;
@@ -664,12 +666,12 @@ contract("vRouter", (accounts) => {
 
     //TBD: FIX THIS
     amountADesired = web3.utils.toWei(
-      (fromWeiToNumber(amountADesired) * 0.98).toString(),
+      (fromWeiToNumber(amountADesired) * 0.99).toString(),
       "ether"
     );
 
     amountBDesired = web3.utils.toWei(
-      (fromWeiToNumber(amountBDesired) * 0.98).toString(),
+      (fromWeiToNumber(amountBDesired) * 0.99).toString(),
       "ether"
     );
 
