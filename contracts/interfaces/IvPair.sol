@@ -1,4 +1,4 @@
-pragma solidity =0.8.1;
+ pragma solidity ^0.8.0;  
 
 interface IvPair {
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
@@ -28,13 +28,6 @@ interface IvPair {
     ) external;
 
     function swapReserveToNative(
-        uint256 amountOut,
-        address ikPair,
-        address to,
-        bytes calldata data
-    ) external;
-
-    function swapNativeToReserve(
         uint256 amountOut,
         address ikPair,
         address to,

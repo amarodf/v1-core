@@ -3,7 +3,6 @@ const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
-const { expect, assert } = require("chai");
 
 contract("ReserveRatio", (accounts) => {
   function fromWeiToNumber(number) {
@@ -21,7 +20,7 @@ contract("ReserveRatio", (accounts) => {
   const C_PRICE = 6;
   const D_PRICE = 10;
 
-  let tokenA, tokenB, tokenC, tokenD, WETH;
+  let tokenA, tokenB, tokenC, tokenD;
 
   const issueAmount = web3.utils.toWei("100000000000000", "ether");
 

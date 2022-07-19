@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.1;
+pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -7,8 +8,6 @@ import "../interfaces/IvFlashSwapCallback.sol";
 import "../interfaces/IvPair.sol";
 import "../interfaces/IvPairFactory.sol";
 import "../interfaces/IvRouter.sol";
-
-import "../libraries/addressCoder.sol";
 
 contract flashSwapExample is IvFlashSwapCallback {
     address factory;
@@ -32,12 +31,22 @@ contract flashSwapExample is IvFlashSwapCallback {
         tokenC = _tokenC;
     }
 
+    function decodeAddress(bytes memory data)
+        internal
+        pure
+        returns (address _address)
+    {
+        bytes memory b = data;
+        assembly {
+            _address := mload(add(b, 20))
+        }
+    }
+
     //send 10 token B to A/C pool swapReserveToNative and take out A and repay flash swap
     function vFlashSwapCallback(
         address sender,
         uint256 amount,
         uint256 requiredBackAmount,
-        address tokenIn,
         bytes memory data
     ) external override {
         address token0 = IvPair(msg.sender).token0();
@@ -55,9 +64,7 @@ contract flashSwapExample is IvFlashSwapCallback {
         //FIX THIS LINE
         vAmountIn = vAmountIn - 1e18;
 
-
-        
-        address caller = AddressCoder.decodeAddress(data);
+        address caller = decodeAddress(data);
 
         SafeERC20.safeTransfer(IERC20(tokenB), jk, amount);
 
@@ -83,20 +90,29 @@ contract flashSwapExample is IvFlashSwapCallback {
     }
 
     //take 10 token B out from A/B pool with a flashswap
-    function testFlashswap(address sender) external {
+    function testFlashswap() external {
         address abPoolAddress = IvPairFactory(factory).getPair(tokenA, tokenB);
+
+        uint256 amountOut = 10 * 1e18;
+
+        uint256 vAmountIn = IvRouter(router).getAmountIn(
+            tokenA,
+            tokenB,
+            amountOut
+        );
+
         SafeERC20.safeTransferFrom(
             IERC20(tokenA),
             msg.sender,
             abPoolAddress,
-            50 * 1e18
+            vAmountIn
         );
 
-        bytes memory encodedAddress = AddressCoder.encodeAddress(msg.sender);
+        bytes memory encodedAddress = abi.encodePacked(msg.sender);
 
         //call flashswap
         IvPair(abPoolAddress).swapNative(
-            10 * 1e18,
+            amountOut,
             tokenB,
             address(this),
             encodedAddress

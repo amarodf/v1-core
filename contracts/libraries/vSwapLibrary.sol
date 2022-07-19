@@ -1,4 +1,4 @@
-pragma solidity =0.8.1;
+ pragma solidity ^0.8.0;  
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../types.sol";
@@ -139,16 +139,4 @@ library vSwapLibrary {
 
     //     return actLiquidity;
     // }
-
-    function addPCT(uint256 _base, uint256 _percentage)
-        public
-        pure
-        returns (uint256)
-    {
-        if (_percentage > 0) {
-            return (_base * (MULTIPLIER + _percentage)) / MULTIPLIER;
-        }
-
-        return _base;
-    }
 }

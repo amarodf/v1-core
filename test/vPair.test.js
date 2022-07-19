@@ -4,7 +4,6 @@ const { assert } = require("chai");
 
 const vRouter = artifacts.require("vRouter");
 const FlashSwapExample = artifacts.require("flashSwapExample");
-const vSwapLibrary = artifacts.require("vSwapLibrary");
 const vPair = artifacts.require("vPair");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const vPairFactory = artifacts.require("vPairFactory");
@@ -34,7 +33,6 @@ contract("vPair", (accounts) => {
 
   let vPairFactoryInstance,
     vRouterInstance,
-    vSwapLibraryInstance,
     vFlashSwapExample,
     vPairInstance;
 
@@ -47,7 +45,6 @@ contract("vPair", (accounts) => {
 
     vPairFactoryInstance = await vPairFactory.deployed();
     vRouterInstance = await vRouter.deployed();
-    vSwapLibraryInstance = await vSwapLibrary.deployed();
 
     await tokenA.approve(vRouterInstance.address, issueAmount);
     await tokenB.approve(vRouterInstance.address, issueAmount);
@@ -193,7 +190,7 @@ contract("vPair", (accounts) => {
   });
 
   it("Should flashswap buying B from A/B, swaping B (reserve) to A on pool A/C and payback loan to pool A/B", async function () {
-    await vFlashSwapExample.testFlashswap(accounts[0]);
+    await vFlashSwapExample.testFlashswap();
   });
 
 

@@ -3,9 +3,6 @@ const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const { assert } = require("chai");
-const { catchRevert } = require("./exceptions");
 
 async function getFutureBlockTimestamp() {
   const blockNumber = await web3.eth.getBlockNumber();

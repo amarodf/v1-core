@@ -2,7 +2,6 @@ const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
-const { assert } = require("chai");
 const { catchRevert } = require("./exceptions");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 
