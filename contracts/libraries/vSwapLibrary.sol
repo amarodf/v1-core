@@ -6,7 +6,7 @@ import "../interfaces/IvPair.sol";
 
 library vSwapLibrary {
     uint256 private constant EPSILON = 1 wei;
-    uint256 private constant RESERVE_RATIO_FACTOR = 1000;
+    uint256 private constant FACTOR = 1000;
     uint256 private constant MULTIPLIER = 100000 * 1e18;
 
     //find common token and assign to ikToken1 and jkToken1
@@ -17,22 +17,17 @@ library vSwapLibrary {
         address jkToken1
     ) public pure returns (VirtualPoolTokens memory vPoolTokens) {
         (
-            address _ikToken0,
-            address _ikToken1,
-            address _jkToken0,
-            address _jkToken1
+            vPoolTokens.ik0,
+            vPoolTokens.ik1,
+            vPoolTokens.jk0,
+            vPoolTokens.jk1
         ) = (ikToken0 == jkToken0)
-                ? (ikToken1, ikToken0, jkToken1, jkToken0)
-                : (ikToken0 == jkToken1)
-                ? (ikToken1, ikToken0, jkToken0, jkToken1)
-                : (ikToken1 == jkToken0)
-                ? (ikToken0, ikToken1, jkToken1, jkToken0)
-                : (ikToken0, ikToken1, jkToken0, jkToken1); //default
-
-        vPoolTokens.ik0 = _ikToken0;
-        vPoolTokens.ik1 = _ikToken1;
-        vPoolTokens.jk0 = _jkToken0;
-        vPoolTokens.jk1 = _jkToken1;
+            ? (ikToken1, ikToken0, jkToken1, jkToken0)
+            : (ikToken0 == jkToken1)
+            ? (ikToken1, ikToken0, jkToken0, jkToken1)
+            : (ikToken1 == jkToken0)
+            ? (ikToken0, ikToken1, jkToken1, jkToken0)
+            : (ikToken0, ikToken1, jkToken0, jkToken1); //default
     }
 
     function percent(uint256 numerator, uint256 denominator)
@@ -52,10 +47,7 @@ library vSwapLibrary {
         uint256 _rReserve,
         uint256 _baseReserve
     ) public pure returns (uint256) {
-        return
-            rRatio +
-            (percent(_rReserve * 100, (_baseReserve * 2)) *
-                RESERVE_RATIO_FACTOR);
+        return rRatio + (percent(_rReserve * 100, (_baseReserve * 2)) * FACTOR);
     }
 
     function calculateVPool(
@@ -79,7 +71,7 @@ library vSwapLibrary {
         uint256 reserveOut,
         uint256 fee
     ) public pure returns (uint256 amountIn) {
-        uint256 numerator = (reserveIn * amountOut) * 1000;
+        uint256 numerator = (reserveIn * amountOut) * FACTOR;
         uint256 denominator = (reserveOut - amountOut) * fee;
         amountIn = (numerator / denominator) + 1;
     }
@@ -92,7 +84,7 @@ library vSwapLibrary {
     ) public pure returns (uint256 amountOut) {
         uint256 amountInWithFee = amountIn * fee;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        uint256 denominator = (reserveIn * FACTOR) + amountInWithFee;
         amountOut = numerator / denominator;
     }
 
