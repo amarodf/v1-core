@@ -49,8 +49,7 @@ contract flashSwapExample is IvFlashSwapCallback {
         uint256 requiredBackAmount,
         bytes memory data
     ) external override {
-        address token0 = IvPair(msg.sender).token0();
-        address token1 = IvPair(msg.sender).token1();
+        (address token0, address token1) = IvPair(msg.sender).getTokens();
         address poolAddress = IvPairFactory(factory).getPair(token0, token1);
         address abPoolAddress = IvPairFactory(factory).getPair(tokenA, tokenB);
 
