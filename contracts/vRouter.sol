@@ -103,16 +103,10 @@ contract vRouter is IvRouter {
             IvPair(pool).reserve1()
         );
 
-        (reserve0, reserve1) = vSwapLibrary.sortReserves(
-            tokenA,
-            IvPair(pool).token0(),
-            reserve0,
-            reserve1
-        );
-
         if (reserve0 == 0 && reserve1 == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
+          
             uint256 amountBOptimal = vSwapLibrary.quote(
                 amountADesired,
                 reserve0,
@@ -233,14 +227,10 @@ contract vRouter is IvRouter {
     {
         address pair = IvPairFactory(factory).getPair(tokenA, tokenB);
 
-        require(pair > address(0), "Cant find pair");
+        require(pair > address(0), "VSWAP: PAIR_DONT_EXIST");
         SafeERC20.safeTransferFrom(IERC20(pair), msg.sender, pair, liquidity);
 
-        (uint256 amount0, uint256 amount1) = IvPair(pair).burn(to);
-        address token0 = tokenA > tokenB ? tokenA : tokenB;
-        (amountA, amountB) = tokenA == token0
-            ? (amount0, amount1)
-            : (amount1, amount0);
+        (uint256 amountA, uint256 amountB) = IvPair(pair).burn(to);
 
         require(amountA >= amountAMin, "VSWAP: INSUFFICIENT_A_AMOUNT");
         require(amountB >= amountBMin, "VSWAP: INSUFFICIENT_B_AMOUNT");

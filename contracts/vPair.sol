@@ -3,6 +3,7 @@ pragma solidity =0.8.1;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+
 import "./interfaces/IvPair.sol";
 import "./interfaces/IvPairFactory.sol";
 import "./interfaces/IvFlashSwapCallback.sol";
@@ -286,6 +287,10 @@ contract vPair is IvPair, vSwapERC20 {
 
         //substract reserve ratio PCT from minted liquidity tokens amount
         uint256 reserveRatio = this.calculateReserveRatio();
+        // liquidity = vSwapLibrary.substractReserveFromLPTokens(
+        //     liquidity,
+        //     reserveRatio
+        // );
         liquidity = vSwapLibrary.substractPCT(liquidity, reserveRatio);
 
         require(liquidity > 0, "ILM");

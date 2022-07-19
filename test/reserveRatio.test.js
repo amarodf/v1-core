@@ -4,7 +4,6 @@ const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const { expect, assert } = require("chai");
-const { catchRevert } = require("./exceptions");
 
 contract("ReserveRatio", (accounts) => {
   function fromWeiToNumber(number) {
@@ -110,13 +109,6 @@ contract("ReserveRatio", (accounts) => {
 
     //whitelist tokens in pools
 
-    //print tokens
-    console.log("tokenA: " + tokenA.address);
-    console.log("tokenB: " + tokenB.address);
-    console.log("tokenC: " + tokenC.address);
-    console.log("tokenD: " + tokenD.address);
-    //print liquidites
-
     //pool 1
     const address = await vPairFactoryInstance.getPair(
       tokenA.address,
@@ -133,7 +125,7 @@ contract("ReserveRatio", (accounts) => {
     reserve0 = fromWeiToNumber(reserve0);
     reserve1 = fromWeiToNumber(reserve1);
 
-    console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
+    // console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
 
     //pool 2
     const address2 = await vPairFactoryInstance.getPair(
@@ -151,7 +143,7 @@ contract("ReserveRatio", (accounts) => {
     reserve0Pool2 = fromWeiToNumber(reserve0Pool2);
     reserve1Pool2 = fromWeiToNumber(reserve1Pool2);
 
-    console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
+    // console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
 
     //pool 3
     const address3 = await vPairFactoryInstance.getPair(
@@ -169,7 +161,7 @@ contract("ReserveRatio", (accounts) => {
     reserve0Pool3 = fromWeiToNumber(reserve0Pool3);
     reserve1Pool3 = fromWeiToNumber(reserve1Pool3);
 
-    console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
+    // console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
 
     //pool 4
     const address4 = await vPairFactoryInstance.getPair(
@@ -187,7 +179,7 @@ contract("ReserveRatio", (accounts) => {
     reserve0Pool4 = fromWeiToNumber(reserve0Pool4);
     reserve1Pool4 = fromWeiToNumber(reserve1Pool4);
 
-    console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
+    // console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
   });
 
   it("Should increase reserveRatio and reservesBaseValue of C after adding C to pool A/B", async () => {
@@ -241,27 +233,6 @@ contract("ReserveRatio", (accounts) => {
     let balanceAAfter = await tokenA.balanceOf(accounts[0]);
 
     let reserveRatioAfter = await pool.calculateReserveRatio();
-
-    // console.log("balanceABefore " + fromWeiToNumber(balanceABefore));
-    // console.log("balanceAAfter " + fromWeiToNumber(balanceAAfter));
-
-    // console.log(
-    //   "tokenCReserveBaseValueBefore " +
-    //     fromWeiToNumber(tokenCReserveBaseValueBefore)
-    // );
-    // console.log(
-    //   "tokenCReserveBaseValueAfter " +
-    //     fromWeiToNumber(tokenCReserveBaseValueAfter)
-    // );
-
-    // console.log(
-    //   "tokenCReserveAbsoluteBefore " +
-    //     fromWeiToNumber(tokenCReserveAbsoluteBefore)
-    // );
-    // console.log(
-    //   "tokenCReserveAbsoluteAfter " +
-    //     fromWeiToNumber(tokenCReserveAbsoluteAfter)
-    // );
 
     expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
       fromWeiToNumber(reserveRatioAfter)
@@ -467,9 +438,5 @@ contract("ReserveRatio", (accounts) => {
 
     assert(reverted, "EXPECTED SWAP TO REVERT");
   });
-  it("Should distribute reserve tokens on removeLiquidity and update reserve ratios", async () => {
-
-
-
-  });
+  it("Should distribute reserve tokens on removeLiquidity and update reserve ratios", async () => {});
 });

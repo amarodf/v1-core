@@ -111,13 +111,6 @@ contract("vSwapLibrary", (accounts) => {
 
     //whitelist tokens in pools
 
-    //print tokens
-    console.log("tokenA: " + tokenA.address);
-    console.log("tokenB: " + tokenB.address);
-    console.log("tokenC: " + tokenC.address);
-    console.log("tokenD: " + tokenD.address);
-    //print liquidites
-
     //pool 1
     const address = await vPairFactoryInstance.getPair(
       tokenA.address,
@@ -134,7 +127,7 @@ contract("vSwapLibrary", (accounts) => {
     reserve0 = fromWeiToNumber(reserve0);
     reserve1 = fromWeiToNumber(reserve1);
 
-    console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
+    // console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
 
     //pool 2
     const address2 = await vPairFactoryInstance.getPair(
@@ -152,7 +145,7 @@ contract("vSwapLibrary", (accounts) => {
     reserve0Pool2 = fromWeiToNumber(reserve0Pool2);
     reserve1Pool2 = fromWeiToNumber(reserve1Pool2);
 
-    console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
+    // console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
 
     //pool 3
     const address3 = await vPairFactoryInstance.getPair(
@@ -170,7 +163,7 @@ contract("vSwapLibrary", (accounts) => {
     reserve0Pool3 = fromWeiToNumber(reserve0Pool3);
     reserve1Pool3 = fromWeiToNumber(reserve1Pool3);
 
-    console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
+    // console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
 
     //pool 4
     const address4 = await vPairFactoryInstance.getPair(
@@ -188,7 +181,7 @@ contract("vSwapLibrary", (accounts) => {
     reserve0Pool4 = fromWeiToNumber(reserve0Pool4);
     reserve1Pool4 = fromWeiToNumber(reserve1Pool4);
 
-    console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
+    // console.log("pool4: B/D: " + reserve0Pool4 + "/" + reserve1Pool4);
   });
 
   async function addCToPoolAB() {
@@ -262,6 +255,67 @@ contract("vSwapLibrary", (accounts) => {
       futureTs
     );
   }
+
+  it("Should calculate correctly getAmountIn", async () => {
+    const address = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+
+    const pool = await vPair.at(address);
+
+    const baseToken = await pool.token0();
+    const reserve0 = await pool.reserve0();
+    const reserve1 = await pool.reserve1();
+    const fee = await pool.fee();
+
+    let reserves = await vSwapLibraryInstance.sortReserves(
+      tokenB.address,
+      baseToken,
+      reserve0,
+      reserve1
+    );
+
+    const amountIn = await vSwapLibraryInstance.getAmountIn(
+      web3.utils.toWei("1", "ether"),
+      reserves._reserve0,
+      reserves._reserve1,
+      fee
+    );
+    // console.log("to buy 1 A, pays " + fromWeiToNumber(amountIn) + " B");
+    assert.equal(fromWeiToNumber(amountIn).toFixed(3), "3.009"); // (B / A) * fee;
+  });
+
+  it("Should calculate correctly getAmountOut", async () => {
+    const address = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+
+    const pool = await vPair.at(address);
+
+    const baseToken = await pool.token0();
+    const reserve0 = await pool.reserve0();
+    const reserve1 = await pool.reserve1();
+    const fee = await pool.fee();
+
+    let reserves = await vSwapLibraryInstance.sortReserves(
+      tokenA.address,
+      baseToken,
+      reserve0,
+      reserve1
+    );
+
+    const amountOut = await vSwapLibraryInstance.getAmountOut(
+      web3.utils.toWei("1", "ether"),
+      reserves._reserve0,
+      reserves._reserve1,
+      fee
+    );
+    // console.log("to sell 1 A, gets " + fromWeiToNumber(amountOut) + " B");
+    assert.equal(fromWeiToNumber(amountOut).toFixed(3), "2.991"); // (B / A) * (1 - fee);
+  });
+
   it("Should calculate percents", async () => {
     let nominator = web3.utils.toWei("10", "ether");
     let denominator = web3.utils.toWei("20", "ether");
@@ -277,6 +331,7 @@ contract("vSwapLibrary", (accounts) => {
 
     assert.equal(percent, 0.2);
   });
+
   it("Should deduct reserve ratio from lp tokens issue", async () => {
     const address = await vPairFactoryInstance.getPair(
       tokenA.address,

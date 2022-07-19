@@ -4,6 +4,8 @@ const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const SafeERC20 = artifacts.require("SafeERC20");
 const Address = artifacts.require("Address");
+const flashSwapExample = artifacts.require("flashSwapExample");
+const addressCoder = artifacts.require("addressCoder");
 const utils = require("./utils");
 
 const mysql = require("mysql");
@@ -48,6 +50,9 @@ module.exports = async function (deployer, network) {
   await deployer.deploy(SafeERC20);
   await deployer.deploy(Address);
 
+  await deployer.deploy(addressCoder); //TEST
+  await deployer.link(addressCoder, flashSwapExample);
+  
   await deployer.link(Address, vPairFactory);
   await deployer.link(SafeERC20, vPairFactory);
   await deployer.link(vSwapLibrary, vPairFactory);

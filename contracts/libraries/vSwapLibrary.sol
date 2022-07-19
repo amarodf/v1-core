@@ -6,7 +6,7 @@ import "../types.sol";
 library vSwapLibrary {
     uint256 private constant EPSILON = 1 wei;
     uint256 private constant RESERVE_RATIO_FACTOR = 1000;
-    uint256 private constant MULTIPLIER = (RESERVE_RATIO_FACTOR * 100) * 1e18;
+    uint256 private constant MULTIPLIER = 100000 * 1e18;
 
     //find common token and assign to ikToken1 and jkToken1
     function findCommonToken(
@@ -127,6 +127,18 @@ library vSwapLibrary {
 
         return _base;
     }
+
+    // function substractReserveFromLPTokens(
+    //     uint256 liquidity,
+    //     uint256 _reserveRatio
+    // ) public pure returns (uint256 actLiquidity) {
+    //     if (_reserveRatio > 0) {
+    //         actLiquidity = (liquidity *
+    //             (MULTIPLIER / (MULTIPLIER + _reserveRatio)));
+    //     }
+
+    //     return actLiquidity;
+    // }
 
     function addPCT(uint256 _base, uint256 _percentage)
         public

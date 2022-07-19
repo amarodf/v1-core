@@ -2,6 +2,7 @@ const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
+const { assert } = require("chai");
 const { catchRevert } = require("./exceptions");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 
@@ -90,12 +91,6 @@ contract("vRouter", (accounts) => {
 
     //whitelist tokens in pools
 
-    //print tokens
-    console.log("tokenA: " + tokenA.address);
-    console.log("tokenB: " + tokenB.address);
-    console.log("tokenC: " + tokenC.address);
-    //print liquidites
-
     //pool 1
     const address = await vPairFactoryInstance.getPair(
       tokenA.address,
@@ -112,7 +107,7 @@ contract("vRouter", (accounts) => {
     reserve0 = fromWeiToNumber(reserve0);
     reserve1 = fromWeiToNumber(reserve1);
 
-    console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
+    // console.log("pool1: A/B: " + reserve0 + "/" + reserve1);
 
     //pool 2
     const address2 = await vPairFactoryInstance.getPair(
@@ -130,7 +125,7 @@ contract("vRouter", (accounts) => {
     reserve0Pool2 = fromWeiToNumber(reserve0Pool2);
     reserve1Pool2 = fromWeiToNumber(reserve1Pool2);
 
-    console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
+    // console.log("pool2: A/C: " + reserve0Pool2 + "/" + reserve1Pool2);
 
     //pool 3
     const address3 = await vPairFactoryInstance.getPair(
@@ -148,10 +143,10 @@ contract("vRouter", (accounts) => {
     reserve0Pool3 = fromWeiToNumber(reserve0Pool3);
     reserve1Pool3 = fromWeiToNumber(reserve1Pool3);
 
-    console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
+    // console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
   });
 
-  it("Should quote", async () => {
+  it("Should quote A to B", async () => {
     const address = await vPairFactoryInstance.getPair(
       tokenA.address,
       tokenB.address
@@ -166,11 +161,25 @@ contract("vRouter", (accounts) => {
       input
     );
 
-    const reserve0 = await pool.reserve0();
-    const reserve1 = await pool.reserve1();
+    const token0 = await pool.token0();
 
-    const ratio = reserve0 / reserve1;
-    assert.equal(quote / ratio, input, "Invalid quote");
+    const reserves = await pool.getReserves();
+
+    let tokenAReserve = 0;
+    let tokenBReserve = 0;
+
+    if (token0 == tokenA.address) {
+      tokenAReserve = reserves._reserve0;
+      tokenBReserve = reserves._reserve1;
+    } else {
+      tokenAReserve = reserves._reserve1;
+      tokenBReserve = reserves._reserve0;
+    }
+
+    const ratio = tokenAReserve / tokenBReserve;
+
+    assert.equal(quote * ratio, input, "Invalid quote");
+    assert.equal(fromWeiToNumber(quote), 42, "Invalid quote");
   });
 
   it("Should (amountIn(amountOut(x)) = x)", async () => {
@@ -267,26 +276,26 @@ contract("vRouter", (accounts) => {
     assert(vPool.token0 == tokenB.address && vPool.token1 == tokenA.address);
   });
 
-  it("Should getVirtualAmountIn", async () => {
+  it("Should getVirtualAmountIn for buying 10 B in virtual pool A/B", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
+      tokenB.address,
+      tokenC.address
     );
 
     const jkPair = await vPairFactoryInstance.getPair(
-      tokenB.address,
+      tokenA.address,
       tokenC.address
     );
 
     const amountOut = web3.utils.toWei("10", "ether");
 
     const amountIn = await vRouterInstance.getVirtualAmountIn(
-      jkPair,
       ikPair,
+      jkPair,
       amountOut
     );
 
-    assert(amountIn > 0);
+    assert.equal(fromWeiToNumber(amountIn).toFixed(3), 3.348);
   });
 
   it("Should getVirtualAmountOut", async () => {
@@ -347,12 +356,8 @@ contract("vRouter", (accounts) => {
       tokenA.address,
       tokenC.address
     );
-
-    const tokenAInstance = await ERC20.at(tokenA.address);
-    const tokenCInstance = await ERC20.at(tokenC.address);
-
-    const tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
-    const tokenCBalanceBefore = await tokenCInstance.balanceOf(accounts[0]);
+    const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    const tokenCBalanceBefore = await tokenC.balanceOf(accounts[0]);
 
     let pools = [poolAddress];
     let amountsIn = web3.utils.toWei("10", "ether");
@@ -375,8 +380,8 @@ contract("vRouter", (accounts) => {
       futureTs
     );
 
-    const tokenABalanceAfter = await tokenAInstance.balanceOf(accounts[0]);
-    const tokenCBalanceAfter = await tokenCInstance.balanceOf(accounts[0]);
+    const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    const tokenCBalanceAfter = await tokenC.balanceOf(accounts[0]);
 
     expect(fromWeiToNumber(tokenCBalanceAfter)).to.be.above(
       fromWeiToNumber(tokenCBalanceBefore)
@@ -393,11 +398,8 @@ contract("vRouter", (accounts) => {
       tokenC.address
     );
 
-    const tokenAInstance = await ERC20.at(tokenA.address);
-    const tokenCInstance = await ERC20.at(tokenC.address);
-
-    const tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
-    const tokenCBalanceBefore = await tokenCInstance.balanceOf(accounts[0]);
+    const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    const tokenCBalanceBefore = await tokenC.balanceOf(accounts[0]);
 
     let amountOut = web3.utils.toWei("10", "ether");
     let iks = ["0x0000000000000000000000000000000000000000"];
@@ -420,8 +422,8 @@ contract("vRouter", (accounts) => {
       futureTs
     );
 
-    const tokenABalanceAfter = await tokenAInstance.balanceOf(accounts[0]);
-    const tokenCBalanceAfter = await tokenCInstance.balanceOf(accounts[0]);
+    const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    const tokenCBalanceAfter = await tokenC.balanceOf(accounts[0]);
 
     expect(fromWeiToNumber(tokenCBalanceAfter)).to.be.lessThan(
       fromWeiToNumber(tokenCBalanceBefore)
@@ -464,7 +466,7 @@ contract("vRouter", (accounts) => {
     );
   });
 
-  it("Should Total Pool swap -> 1. C to A on pool A/C  --  2. C to A on pool A/B", async () => {
+  it("Should Total Pool swap -> 1. C to A on pool A/C   2. C to A on pool A/B", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
       tokenC.address,
       tokenB.address
@@ -514,6 +516,43 @@ contract("vRouter", (accounts) => {
     );
   });
 
+  it("Should revert on swap A to C on pool A/C with insuficient input amount", async () => {
+    const poolAddress = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenC.address
+    );
+
+    let pools = [poolAddress];
+    let amountsIn = web3.utils.toWei("10", "ether");
+
+    const amountOut = await vRouterInstance.getAmountOut(
+      tokenA.address,
+      tokenC.address,
+      amountsIn
+    );
+
+    amountsIn = web3.utils.toWei("8", "ether");
+
+    const futureTs = await getFutureBlockTimestamp();
+    let reverted = false;
+    try {
+      await vRouterInstance.swap(
+        pools,
+        [amountsIn],
+        [amountOut],
+        ["0x0000000000000000000000000000000000000000"],
+        tokenA.address,
+        tokenC.address,
+        accounts[0],
+        futureTs
+      );
+    } catch {
+      reverted = true;
+    }
+
+    assert(reverted);
+  });
+
   it("Should add liquidity", async () => {
     let amountADesired = web3.utils.toWei("1", "ether");
 
@@ -533,6 +572,8 @@ contract("vRouter", (accounts) => {
     let totalBalanceBefore0 = reserve0;
     let totalBalanceBefore1 = reserve1;
 
+    const lpSupplyBefore = await pool.totalSupply();
+
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.addLiquidity(
@@ -548,6 +589,8 @@ contract("vRouter", (accounts) => {
 
     reserve0 = await pool.reserve0();
     reserve1 = await pool.reserve1();
+
+    const lpSupplyAfter = await pool.totalSupply();
 
     let totalBalanceAfter0 = reserve0;
     let totalBalanceAfter1 = reserve1;
@@ -599,39 +642,53 @@ contract("vRouter", (accounts) => {
     );
   });
 
-
   it("Should remove all pool liquidity", async () => {
     const poolAddress = await vPairFactoryInstance.getPair(
       tokenA.address,
       tokenB.address
     );
     const pool = await vPair.at(poolAddress);
-    let lpBalanceBefore = await pool.balanceOf(accounts[0]);
-    const tokenAInstance = await ERC20.at(tokenA.address);
-    const tokenBInstance = await ERC20.at(tokenB.address);
-    const tokenCInstance = await ERC20.at(tokenC.address);
+    let lpBalance = await pool.balanceOf(accounts[0]);
 
-    let tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
-    let tokenBBalanceBefore = await tokenBInstance.balanceOf(accounts[0]);
+    let tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceBefore = await tokenB.balanceOf(accounts[0]);
+
+    let token0 = await pool.token0();
+    let token1 = await pool.token1();
+    let amountADesired = await pool.reserve0();
+
+    let amountBDesired = await vRouterInstance.quote(
+      token0,
+      token1,
+      amountADesired
+    );
+
+    //TBD: FIX THIS
+    amountADesired = web3.utils.toWei(
+      (fromWeiToNumber(amountADesired) * 0.98).toString(),
+      "ether"
+    );
+
+    amountBDesired = web3.utils.toWei(
+      (fromWeiToNumber(amountBDesired) * 0.98).toString(),
+      "ether"
+    );
+
+    const cResrveRatio = await pool.reservesBaseValue(tokenC.address);
+    const userTokenCBalance = await tokenC.balanceOf(accounts[0]);
 
     let reserve0 = await pool.reserve0();
     let reserve1 = await pool.reserve1();
 
-    const amount0Min = fromWeiToNumber(reserve0) * 0.98;
-    const amount1Min = fromWeiToNumber(reserve1) * 0.98;
+    await pool.approve(vRouterInstance.address, lpBalance);
 
-    await pool.approve(vRouterInstance.address, lpBalanceBefore);
     const futureTs = await getFutureBlockTimestamp();
-
-    const cResrveRatio = await pool.reservesBaseValue(tokenC.address);
-    const userTokenCBalance = await tokenCInstance.balanceOf(accounts[0]);
-
     await vRouterInstance.removeLiquidity(
       tokenA.address,
       tokenB.address,
-      lpBalanceBefore,
-      web3.utils.toWei(amount0Min.toString(), "ether"),
-      web3.utils.toWei(amount1Min.toString(), "ether"),
+      lpBalance,
+      amountADesired,
+      amountBDesired,
       accounts[0],
       futureTs
     );
@@ -639,12 +696,12 @@ contract("vRouter", (accounts) => {
     tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
     tokenBBalanceBefore = fromWeiToNumber(tokenBBalanceBefore);
 
-    lpBalanceBefore = fromWeiToNumber(lpBalanceBefore);
+    lpBalanceBefore = fromWeiToNumber(lpBalance);
     let lpBalanceAfter = await pool.balanceOf(accounts[0]);
     lpBalanceAfter = fromWeiToNumber(lpBalanceAfter);
 
-    let tokenABalanceAfter = await tokenAInstance.balanceOf(accounts[0]);
-    let tokenBBalanceAfter = await tokenBInstance.balanceOf(accounts[0]);
+    let tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceAfter = await tokenB.balanceOf(accounts[0]);
 
     tokenABalanceAfter = fromWeiToNumber(tokenABalanceAfter);
     tokenBBalanceAfter = fromWeiToNumber(tokenBBalanceAfter);
@@ -654,7 +711,7 @@ contract("vRouter", (accounts) => {
 
     const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
 
-    const userTokenCBalanceAfter = await tokenCInstance.balanceOf(accounts[0]);
+    const userTokenCBalanceAfter = await tokenC.balanceOf(accounts[0]);
 
     assert.equal(lpBalanceAfter, 0, "LP tokens not zero");
     expect(tokenABalanceBefore).to.lessThan(tokenABalanceAfter);
@@ -728,8 +785,6 @@ contract("vRouter", (accounts) => {
     );
     const pool = await vPair.at(poolAddress);
     let lpBalanceBefore = await pool.balanceOf(accounts[0]);
-    const tokenAInstance = await ERC20.at(tokenA.address);
-    const tokenBInstance = await ERC20.at(tokenB.address);
 
     let reserve0 = await pool.reserve0();
     let reserve1 = await pool.reserve1();
@@ -742,8 +797,8 @@ contract("vRouter", (accounts) => {
     await pool.approve(vRouterInstance.address, lpBalanceBefore);
 
     //get account0 balance before
-    let tokenABalanceBefore = await tokenAInstance.balanceOf(accounts[0]);
-    let tokenBBalanceBefore = await tokenBInstance.balanceOf(accounts[0]);
+    let tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceBefore = await tokenB.balanceOf(accounts[0]);
 
     const tokenAMin = reserve0 / 4;
     const tokenBMin = reserve1 / 4;
@@ -760,8 +815,8 @@ contract("vRouter", (accounts) => {
     );
 
     //get account0 balance before
-    let tokenABalanceAfter = await tokenAInstance.balanceOf(accounts[0]);
-    let tokenBBalanceAfter = await tokenBInstance.balanceOf(accounts[0]);
+    let tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceAfter = await tokenB.balanceOf(accounts[0]);
 
     tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
     tokenBBalanceBefore = fromWeiToNumber(tokenBBalanceBefore);
