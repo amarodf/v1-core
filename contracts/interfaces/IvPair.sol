@@ -1,4 +1,4 @@
- pragma solidity ^0.8.0;  
+pragma solidity ^0.8.0;
 
 interface IvPair {
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
@@ -34,6 +34,13 @@ interface IvPair {
         bytes calldata data
     ) external;
 
+    function swapNativeToReserve(
+        uint256 amountOut,
+        address ikPair,
+        address to,
+        bytes calldata data
+    ) external;
+
     function mint(address to) external returns (uint256 liquidity);
 
     function burn(address to)
@@ -58,13 +65,7 @@ interface IvPair {
 
     function max_whitelist_count() external view returns (uint256);
 
-    function getReserves()
-        external
-        view
-        returns (uint256 _reserve0, uint256 _reserve1);
+    function getReserves() external view returns (uint256, uint256);
 
-    function getTokens()
-        external
-        view
-        returns (address _token0, address _token1);
+    function getTokens() external view returns (address, address);
 }

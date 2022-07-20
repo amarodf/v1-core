@@ -432,6 +432,8 @@ contract("vRouter", (accounts) => {
     );
   });
 
+  let amountInTokenC;
+
   it("Should swap C to A on pool A/B", async () => {
     const ikPair = await vPairFactoryInstance.getPair(
       tokenC.address,
@@ -451,6 +453,8 @@ contract("vRouter", (accounts) => {
       amountOut
     );
 
+    amountInTokenC = amountIn;
+
     const futureTs = await getFutureBlockTimestamp();
     await vRouterInstance.swap(
       [jkPair],
@@ -459,6 +463,36 @@ contract("vRouter", (accounts) => {
       [ikPair],
       tokenC.address,
       tokenA.address,
+      accounts[0],
+      futureTs
+    );
+  });
+
+  it("Should swap A to C on pool A/B", async () => {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenC.address
+    );
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountInTokenC
+    );
+
+    const futureTs = await getFutureBlockTimestamp();
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountInTokenC],
+      [ikPair],
+      tokenA.address,
+      tokenC.address,
       accounts[0],
       futureTs
     );
