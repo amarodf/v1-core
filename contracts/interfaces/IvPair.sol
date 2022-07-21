@@ -68,4 +68,11 @@ interface IvPair {
     function getReserves() external view returns (uint256, uint256);
 
     function getTokens() external view returns (address, address);
+
+    function reservesBaseValue(address reserveAddress)
+        external
+        view
+        returns (uint256);
+
+    function reserves(address reserveAddress) external view returns (uint256);
 }

@@ -30,7 +30,7 @@ contract vPair is IvPair, vSwapERC20 {
     mapping(address => bool) public whitelistAllowance;
     uint256 public override max_whitelist_count;
 
-    mapping(address => uint256) public reservesBaseValue;
+    mapping(address => uint256) public override reservesBaseValue;
     mapping(address => uint256) public reserves;
 
     uint256 private unlocked = 1;

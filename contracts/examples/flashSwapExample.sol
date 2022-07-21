@@ -94,19 +94,6 @@ contract flashSwapExample is IvFlashSwapCallback {
 
         uint256 amountOut = 10 * 1e18;
 
-        uint256 vAmountIn = IvRouter(router).getAmountIn(
-            tokenA,
-            tokenB,
-            amountOut
-        );
-
-        SafeERC20.safeTransferFrom(
-            IERC20(tokenA),
-            msg.sender,
-            abPoolAddress,
-            vAmountIn
-        );
-
         bytes memory encodedAddress = abi.encodePacked(msg.sender);
 
         //call flashswap
