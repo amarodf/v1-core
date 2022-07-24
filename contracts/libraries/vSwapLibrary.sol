@@ -6,7 +6,6 @@ import "../interfaces/IvPair.sol";
 
 library vSwapLibrary {
     uint256 private constant FACTOR = 10**3;
-    uint256 private constant MULTIPLIER = 10**5 * 1e18;
 
     //find common token and assign to ikToken1 and jkToken1
     function findCommonToken(
