@@ -12,7 +12,9 @@ const { expect } = chai;
 
 contract("vPair", (accounts) => {
   function fromWeiToNumber(number) {
-    return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
+    return (
+      parseFloat(web3.utils.fromWei(number.toString(), "ether")).toFixed(6) * 1
+    );
   }
 
   async function getFutureBlockTimestamp() {
@@ -31,10 +33,7 @@ contract("vPair", (accounts) => {
 
   const issueAmount = web3.utils.toWei("100000000000000", "ether");
 
-  let vPairFactoryInstance,
-    vRouterInstance,
-    vFlashSwapExample,
-    vPairInstance;
+  let vPairFactoryInstance, vRouterInstance, vFlashSwapExample, vPairInstance;
 
   before(async () => {
     tokenA = await ERC20.new("tokenA", "A", issueAmount, accounts[0]);
@@ -192,7 +191,6 @@ contract("vPair", (accounts) => {
   it("Should flashswap buying B from A/B, swaping B (reserve) to A on pool A/C and payback loan to pool A/B", async function () {
     await vFlashSwapExample.testFlashswap();
   });
-
 
   it("Should set max whitelist count", async () => {
     const maxWhitelist = await vPairInstance.max_whitelist_count();

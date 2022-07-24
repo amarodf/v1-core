@@ -6,7 +6,9 @@ const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 
 contract("ReserveRatio", (accounts) => {
   function fromWeiToNumber(number) {
-    return parseFloat(web3.utils.fromWei(number, "ether")).toFixed(6) * 1;
+    return (
+      parseFloat(web3.utils.fromWei(number.toString(), "ether")).toFixed(6) * 1
+    );
   }
 
   async function getFutureBlockTimestamp() {
@@ -204,6 +206,12 @@ contract("ReserveRatio", (accounts) => {
 
     const futureTs = await getFutureBlockTimestamp();
 
+    let amountCInBalance = await tokenC.balanceOf(pool.address);
+    let amountCInReserve = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValue = await pool.reservesBaseValue(
+      tokenC.address
+    );
+
     let reserveRatioBefore = await pool.calculateReserveRatio();
     let tokenCReserve = await pool.reservesBaseValue(tokenC.address);
     await vRouterInstance.swap(
@@ -217,6 +225,20 @@ contract("ReserveRatio", (accounts) => {
       futureTs
     );
 
+    let amountCInBalanceAfter = await tokenC.balanceOf(pool.address);
+    let amountCInReserveAfter = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValueAfter = await pool.reservesBaseValue(
+      tokenC.address
+    );
+
+    // console.log("amountCInReserve " + amountCInReserve);
+    // console.log("amountCInReserveAfter " + amountCInReserveAfter);
+
+    // console.log("amountCInReserveBaseValue " + amountCInReserveBaseValue);
+    // console.log(
+    //   "amountCInReserveBaseValueAfter " + amountCInReserveBaseValueAfter
+    // );
+
     let reserveRatioAfter = await pool.calculateReserveRatio();
 
     expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
@@ -226,6 +248,278 @@ contract("ReserveRatio", (accounts) => {
     let tokenCReserveAfter = await pool.reservesBaseValue(tokenC.address);
     expect(fromWeiToNumber(tokenCReserve)).to.lessThan(
       fromWeiToNumber(tokenCReserveAfter)
+    );
+  });
+
+  it("Should increase reserveRatio and reservesBaseValue of C after adding C for A on pool A/B #2", async () => {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenC.address,
+      tokenB.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    const pool = await vPair.at(jkPair);
+
+    let amountOut = web3.utils.toWei("1", "ether");
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
+
+    const futureTs = await getFutureBlockTimestamp();
+
+    let amountCInBalance = await tokenC.balanceOf(pool.address);
+    let amountCInReserve = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValue = await pool.reservesBaseValue(
+      tokenC.address
+    );
+
+    let reserveRatioBefore = await pool.calculateReserveRatio();
+    let tokenCReserve = await pool.reservesBaseValue(tokenC.address);
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountOut],
+      [ikPair],
+      tokenC.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+
+    let amountCInBalanceAfter = await tokenC.balanceOf(pool.address);
+    let amountCInReserveAfter = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValueAfter = await pool.reservesBaseValue(
+      tokenC.address
+    );
+    let reserveRatioAfter = await pool.calculateReserveRatio();
+
+    expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
+      fromWeiToNumber(reserveRatioAfter)
+    );
+
+    let tokenCReserveAfter = await pool.reservesBaseValue(tokenC.address);
+    expect(fromWeiToNumber(tokenCReserve)).to.lessThan(
+      fromWeiToNumber(tokenCReserveAfter)
+    );
+  });
+
+  it("Should increase reserveRatio and reservesBaseValue of C after adding C for B on pool A/B", async () => {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenC.address,
+      tokenA.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    const pool = await vPair.at(jkPair);
+
+    let amountOut = web3.utils.toWei("1", "ether");
+
+    const amountIn = await vRouterInstance.getVirtualAmountIn(
+      jkPair,
+      ikPair,
+      amountOut
+    );
+
+    const futureTs = await getFutureBlockTimestamp();
+
+    let amountCInBalance = await tokenC.balanceOf(pool.address);
+    let amountCInReserve = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValue = await pool.reservesBaseValue(
+      tokenC.address
+    );
+
+    let reserveRatioBefore = await pool.calculateReserveRatio();
+    let tokenCReserve = await pool.reservesBaseValue(tokenC.address);
+    await vRouterInstance.swap(
+      [jkPair],
+      [amountIn],
+      [amountOut],
+      [ikPair],
+      tokenC.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+
+    let amountCInBalanceAfter = await tokenC.balanceOf(pool.address);
+    let amountCInReserveAfter = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValueAfter = await pool.reservesBaseValue(
+      tokenC.address
+    );
+    let reserveRatioAfter = await pool.calculateReserveRatio();
+
+    expect(fromWeiToNumber(reserveRatioBefore)).to.lessThan(
+      fromWeiToNumber(reserveRatioAfter)
+    );
+
+    let tokenCReserveAfter = await pool.reservesBaseValue(tokenC.address);
+    expect(fromWeiToNumber(tokenCReserve)).to.lessThan(
+      fromWeiToNumber(tokenCReserveAfter)
+    );
+  });
+
+  it("Should update price after a 50% drop in price of C in pool A/B", async () => {
+    const ikPair = await vPairFactoryInstance.getPair(
+      tokenC.address,
+      tokenB.address
+    );
+
+    const jkPair = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    let amountIn = web3.utils.toWei("120000", "ether");
+
+    const pool = await vPair.at(jkPair);
+    const ikpool = await vPair.at(ikPair);
+
+    //
+    let reserves = await ikpool.getReserves();
+
+    console.log("Pool B/C - reserves 0 " + fromWeiToNumber(reserves["0"]));
+    console.log("Pool B/C - reserves 1 " + fromWeiToNumber(reserves["1"]));
+
+    //get quote
+    let amountOutOne = await vRouterInstance.getAmountOut(
+      tokenC.address,
+      tokenB.address,
+      web3.utils.toWei("1", "ether")
+    );
+
+    console.log(
+      "Pool B/C - for 1C gets " + fromWeiToNumber(amountOutOne) + "B"
+    );
+
+    //get quote
+    let amountOut = await vRouterInstance.getAmountOut(
+      tokenC.address,
+      tokenB.address,
+      amountIn
+    );
+
+    console.log(
+      "Pool B/C - for " +
+        fromWeiToNumber(amountIn) +
+        "C gets " +
+        fromWeiToNumber(amountOut) +
+        "B"
+    );
+
+    //reserve of C in pool JK
+    let reserveBaseBalance = await pool.reservesBaseValue(tokenC.address);
+    let reserveBalance = await pool.reserves(tokenC.address);
+
+    console.log(
+      "Pool A/B - C reserve balance: " + fromWeiToNumber(reserveBalance)
+    );
+    console.log(
+      "Pool A/B - C reserve balance in token0: " +
+        fromWeiToNumber(reserveBaseBalance)
+    );
+
+    console.log(
+      "-------------------\nPool B/C - swapping " +
+        fromWeiToNumber(amountIn) +
+        "C for " +
+        fromWeiToNumber(amountOut) +
+        "B"
+    );
+
+    const futureTs = await getFutureBlockTimestamp();
+    await vRouterInstance.swap(
+      [ikPair],
+      [amountIn],
+      [amountOut],
+      ["0x0000000000000000000000000000000000000000"],
+      tokenC.address,
+      tokenB.address,
+      accounts[0],
+      futureTs
+    );
+
+    let reservesAfterSwap = await ikpool.getReserves();
+
+    console.log(
+      "Pool B/C - reserves 0 " + fromWeiToNumber(reservesAfterSwap["0"])
+    );
+    console.log(
+      "Pool B/C - reserves 1 " + fromWeiToNumber(reservesAfterSwap["1"])
+    );
+
+    //get quote
+    let amountOutOneAfter = await vRouterInstance.getAmountOut(
+      tokenC.address,
+      tokenB.address,
+      web3.utils.toWei("1", "ether")
+    );
+
+    console.log(
+      "Pool B/C - for 1C gets " + fromWeiToNumber(amountOutOneAfter) + "B"
+    );
+
+    console.log("-------------------\nSwap C for A in vPool A/C ");
+
+    let amountOutA = web3.utils.toWei("1", "ether");
+
+    const ikPair2 = await vPairFactoryInstance.getPair(
+      tokenC.address,
+      tokenB.address
+    );
+
+    const jkPair2 = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+
+    //get amountIn
+    let amountInC = await vRouterInstance.getVirtualAmountIn(
+      jkPair2,
+      ikPair2,
+      amountOutA
+    );
+
+    console.log(
+      "vPool A/C - for " +
+        fromWeiToNumber(amountInC) +
+        "C gets " +
+        fromWeiToNumber(amountOutA) +
+        "A"
+    );
+
+    //add C and get B from pool AB
+    await vRouterInstance.swap(
+      [jkPair2],
+      [amountInC],
+      [amountOutA],
+      [ikPair2],
+      tokenC.address,
+      tokenA.address,
+      accounts[0],
+      futureTs
+    );
+
+    //reserve of C in pool JK
+    let reserveBaseBalanceAfter = await pool.reservesBaseValue(tokenC.address);
+    let reserveBalanceAfter = await pool.reserves(tokenC.address);
+
+    console.log(
+      "Pool A/B - C reserve balance: " + fromWeiToNumber(reserveBalanceAfter)
+    );
+    console.log(
+      "Pool A/B - C reserve balance in token0: " +
+        fromWeiToNumber(reserveBaseBalanceAfter)
     );
   });
 
@@ -279,18 +573,6 @@ contract("ReserveRatio", (accounts) => {
     );
   });
 
-  it("Assert pool A/B calculateReserveRatio() > 0", async () => {
-    const jkPair = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenA.address
-    );
-
-    const pool = await vPair.at(jkPair);
-    const poolReserveRatio = await pool.calculateReserveRatio();
-
-    assert(fromWeiToNumber(poolReserveRatio) > 0, "Reserve ratio invalid");
-  });
-
   it("Assert pool A/B calculateReserveRatio is correct ", async () => {
     const jkPair = await vPairFactoryInstance.getPair(
       tokenB.address,
@@ -308,18 +590,29 @@ contract("ReserveRatio", (accounts) => {
 
     let totalReserves = poolCReserves + poolDReserves;
 
+    console.log("totalReserves " + totalReserves);
+
     let reserve0 = await pool.reserve0();
     reserve0 = fromWeiToNumber(reserve0);
     let poolLiquidity = reserve0 * 2;
 
+    console.log("poolLiquidity " + poolLiquidity);
+
     let reserveRatioPCT =
       ((totalReserves / poolLiquidity) * 100).toFixed(3) * 1;
 
+    console.log("reserveRatioPCT " + reserveRatioPCT);
+
     poolReserveRatio = fromWeiToNumber(poolReserveRatio);
 
+    let maxReserveRatio = await pool.max_reserve_ratio();
+    console.log("maxReserveRatio " + fromWeiToNumber(maxReserveRatio));
+
+    console.log("poolReserveRatio " + poolReserveRatio);
+
     assert.equal(
-      (poolReserveRatio / 1000).toFixed(3) * 1,
-      reserveRatioPCT,
+      parseInt(poolReserveRatio),
+      reserveRatioPCT * 1000,
       "Pool reserve ratio is not equal to calculated in test"
     );
   });
@@ -335,7 +628,7 @@ contract("ReserveRatio", (accounts) => {
       tokenA.address
     );
 
-    let amountOut = web3.utils.toWei("10", "ether");
+    let amountOut = web3.utils.toWei("40", "ether");
 
     const amountIn = await vRouterInstance.getVirtualAmountIn(
       jkPair,
@@ -364,57 +657,49 @@ contract("ReserveRatio", (accounts) => {
     assert(reverted, "EXPECTED SWAP TO REVERT");
   });
 
-  // it("Should add liquidity and deduct reserve ratio", async () => {
-  //   const jkPair = await vPairFactoryInstance.getPair(
-  //     tokenB.address,
-  //     tokenA.address
-  //   );
+  it("Withdrawal from pool A/B and check reserves and reserveRatio", async () => {
+    const poolAddress = await vPairFactoryInstance.getPair(
+      tokenB.address,
+      tokenA.address
+    );
+    const pool = await vPair.at(poolAddress);
 
-  //   let pool = await vPair.at(jkPair);
-  //   let amountADesired = web3.utils.toWei("1", "ether");
+    let balance = await pool.balanceOf(accounts[0]);
 
-  //   const amountBDesired = await vRouterInstance.quote(
-  //     tokenA.address,
-  //     tokenB.address,
-  //     amountADesired
-  //   );
+    //get 30% of balance out
+    let balanceOut = fromWeiToNumber(balance) * 0.3;
 
-  //   console.log("amountADesired " + fromWeiToNumber(amountADesired));
-  //   console.log("amountBDesired " + fromWeiToNumber(amountBDesired));
+    await pool.approve(
+      vRouterInstance.address,
+      web3.utils.toWei(balanceOut.toString())
+    );
 
-  //   let reserve0 = await pool.reserve0();
-  //   let reserve1 = await pool.reserve1();
+    let reserves = await pool.getReserves();
 
-  //   let poolReserve0Before = reserve0;
-  //   let poolReserve1Before = reserve1;
+    let amountADesired = fromWeiToNumber(reserves["0"]) * 0.29;
+    let amountBDesired = fromWeiToNumber(reserves["1"]) * 0.29;
 
-  //   const futureTs = await getFutureBlockTimestamp();
+    let amountCInBalance = await tokenC.balanceOf(pool.address);
+    let amountCInReserve = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValue = await pool.reservesBaseValue(
+      tokenC.address
+    );
 
-  //   await vRouterInstance.addLiquidity(
-  //     tokenA.address,
-  //     tokenB.address,
-  //     amountADesired,
-  //     amountBDesired,
-  //     amountADesired,
-  //     amountBDesired,
-  //     accounts[0],
-  //     futureTs
-  //   );
+    const futureTs = await getFutureBlockTimestamp();
+    await vRouterInstance.removeLiquidity(
+      tokenA.address,
+      tokenB.address,
+      web3.utils.toWei(balanceOut.toString()),
+      web3.utils.toWei(amountADesired.toString()),
+      web3.utils.toWei(amountBDesired.toString()),
+      accounts[0],
+      futureTs
+    );
 
-  //   reserve0 = await pool.reserve0();
-  //   reserve1 = await pool.reserve1();
-
-  //   let poolReserve0After = reserve0;
-  //   let poolReserve1After = reserve1;
-
-  //   expect(Number(poolReserve0Before.toString())).to.lessThan(
-  //     Number(poolReserve0After.toString())
-  //   );
-
-  //   expect(Number(poolReserve1Before.toString())).to.lessThan(
-  //     Number(poolReserve1After.toString())
-  //   );
-  // });
-
-  // it("Should distribute reserve tokens on removeLiquidity and update reserve ratios", async () => {});
+    let amountCInBalanceAfter = await tokenC.balanceOf(pool.address);
+    let amountCInReserveAfter = await pool.reserves(tokenC.address);
+    let amountCInReserveBaseValueAfter = await pool.reservesBaseValue(
+      tokenC.address
+    );
+  });
 });

@@ -585,6 +585,81 @@ contract("vRouter", (accounts) => {
     assert(reverted);
   });
 
+  it("Should remove 1/4 liquidity", async () => {
+    const poolAddress = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+    const pool = await vPair.at(poolAddress);
+    let lpBalanceBefore = await pool.balanceOf(accounts[0]);
+
+    let reserve0 = await pool.reserve0();
+    let reserve1 = await pool.reserve1();
+
+    reserve0 = fromWeiToNumber(reserve0);
+    reserve1 = fromWeiToNumber(reserve1);
+
+    const withdrawAmount = fromWeiToNumber(lpBalanceBefore) / 4;
+
+    await pool.approve(vRouterInstance.address, lpBalanceBefore);
+
+    //get account0 balance before
+    let tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceBefore = await tokenB.balanceOf(accounts[0]);
+
+    const tokenAMin = reserve0 / 4;
+    const tokenBMin = reserve1 / 4;
+
+    const cResrveRatio = await pool.reservesBaseValue(tokenC.address);
+
+    const cResrve = await pool.reserves(tokenC.address);
+
+    const futureTs = await getFutureBlockTimestamp();
+    await vRouterInstance.removeLiquidity(
+      tokenA.address,
+      tokenB.address,
+      web3.utils.toWei(withdrawAmount.toString(), "ether"),
+      web3.utils.toWei(tokenAMin.toString(), "ether"),
+      web3.utils.toWei(tokenBMin.toString(), "ether"),
+      accounts[0],
+      futureTs
+    );
+
+    const cResrveAfter = await pool.reserves(tokenC.address);
+
+    const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
+
+    //get account0 balance before
+    let tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    let tokenBBalanceAfter = await tokenB.balanceOf(accounts[0]);
+
+    tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
+    tokenBBalanceBefore = fromWeiToNumber(tokenBBalanceBefore);
+    tokenABalanceAfter = fromWeiToNumber(tokenABalanceAfter);
+    tokenBBalanceAfter = fromWeiToNumber(tokenBBalanceAfter);
+
+    let reserve0After = await pool.reserve0();
+    let reserve1After = await pool.reserve1();
+
+    reserve0After = fromWeiToNumber(reserve0After);
+    reserve1After = fromWeiToNumber(reserve1After);
+
+    expect(tokenABalanceAfter).to.be.above(tokenABalanceBefore);
+    expect(tokenBBalanceAfter).to.be.above(tokenBBalanceBefore);
+
+    assert.equal(
+      (reserve0 * 0.75).toFixed(3),
+      reserve0After.toFixed(3),
+      "Pool reserve did not decrease by 1/4"
+    );
+
+    assert.equal(
+      (reserve1 * 0.75).toFixed(3),
+      reserve1After.toFixed(3),
+      "Pool reserve did not decrease by 1/4"
+    );
+  });
+
   it("Should add liquidity", async () => {
     let amountADesired = web3.utils.toWei("1", "ether");
 
@@ -612,6 +687,8 @@ contract("vRouter", (accounts) => {
 
     const futureTs = await getFutureBlockTimestamp();
 
+    let lpBalance = await pool.balanceOf(accounts[0]);
+
     await vRouterInstance.addLiquidity(
       tokenA.address,
       tokenB.address,
@@ -622,6 +699,8 @@ contract("vRouter", (accounts) => {
       accounts[0],
       futureTs
     );
+
+    lpBalance = await pool.balanceOf(accounts[0]);
 
     reserve0 = await pool.reserve0();
     reserve1 = await pool.reserve1();
@@ -716,6 +795,9 @@ contract("vRouter", (accounts) => {
 
     await pool.approve(vRouterInstance.address, lpBalance);
 
+    const poolRRbefore = await pool.calculateReserveRatio();
+
+    const cResrve = await pool.reserves(tokenC.address);
     const futureTs = await getFutureBlockTimestamp();
     await vRouterInstance.removeLiquidity(
       tokenA.address,
@@ -725,6 +807,17 @@ contract("vRouter", (accounts) => {
       amountBDesired,
       accounts[0],
       futureTs
+    );
+
+    const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
+    console.log("cResrveRatio after: " + cResrveRatioAfter);
+
+    const cResrveAfter = await pool.reserves(tokenC.address);
+    console.log("cResrveAfter: " + cResrveAfter);
+
+    const poolRRAfter = await pool.calculateReserveRatio();
+    console.log(
+      "Pool RR after remove all liquidity: " + fromWeiToNumber(poolRRAfter)
     );
 
     tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
@@ -742,8 +835,6 @@ contract("vRouter", (accounts) => {
 
     let reserve0After = await pool.reserve0();
     let reserve1After = await pool.reserve1();
-
-    const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
 
     const userTokenCBalanceAfter = await tokenC.balanceOf(accounts[0]);
 
@@ -784,9 +875,11 @@ contract("vRouter", (accounts) => {
       amountADesired
     );
 
-    let rr = await pool.calculateReserveRatio();
+    let poolRR = await pool.calculateReserveRatio();
     const futureTs = await getFutureBlockTimestamp();
 
+    let lpBalanceBefore = await pool.balanceOf(accounts[0]);
+    let poolTs = await pool.totalSupply();
     await vRouterInstance.addLiquidity(
       tokenA.address,
       tokenB.address,
@@ -797,6 +890,9 @@ contract("vRouter", (accounts) => {
       accounts[0],
       futureTs
     );
+
+    let poolTsAfter = await pool.totalSupply();
+    let lpBalanceAfter = await pool.balanceOf(accounts[0]);
 
     let reserve0After = await pool.reserve0();
     let reserve1After = await pool.reserve1();
@@ -810,73 +906,6 @@ contract("vRouter", (accounts) => {
 
     expect(reserve0Eth).to.lessThan(reserve0AfterEth);
     expect(reserve1Eth).to.lessThan(reserve1AfterEth);
-  });
-
-  it("Should remove 1/4 liquidity", async () => {
-    const poolAddress = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-    const pool = await vPair.at(poolAddress);
-    let lpBalanceBefore = await pool.balanceOf(accounts[0]);
-
-    let reserve0 = await pool.reserve0();
-    let reserve1 = await pool.reserve1();
-
-    reserve0 = fromWeiToNumber(reserve0);
-    reserve1 = fromWeiToNumber(reserve1);
-
-    const withdrawAmount = fromWeiToNumber(lpBalanceBefore) / 4;
-
-    await pool.approve(vRouterInstance.address, lpBalanceBefore);
-
-    //get account0 balance before
-    let tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
-    let tokenBBalanceBefore = await tokenB.balanceOf(accounts[0]);
-
-    const tokenAMin = reserve0 / 4;
-    const tokenBMin = reserve1 / 4;
-
-    const futureTs = await getFutureBlockTimestamp();
-    await vRouterInstance.removeLiquidity(
-      tokenA.address,
-      tokenB.address,
-      web3.utils.toWei(withdrawAmount.toString(), "ether"),
-      web3.utils.toWei(tokenAMin.toString(), "ether"),
-      web3.utils.toWei(tokenBMin.toString(), "ether"),
-      accounts[0],
-      futureTs
-    );
-
-    //get account0 balance before
-    let tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
-    let tokenBBalanceAfter = await tokenB.balanceOf(accounts[0]);
-
-    tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
-    tokenBBalanceBefore = fromWeiToNumber(tokenBBalanceBefore);
-    tokenABalanceAfter = fromWeiToNumber(tokenABalanceAfter);
-    tokenBBalanceAfter = fromWeiToNumber(tokenBBalanceAfter);
-
-    let reserve0After = await pool.reserve0();
-    let reserve1After = await pool.reserve1();
-
-    reserve0After = fromWeiToNumber(reserve0After);
-    reserve1After = fromWeiToNumber(reserve1After);
-
-    expect(tokenABalanceAfter).to.be.above(tokenABalanceBefore);
-    expect(tokenBBalanceAfter).to.be.above(tokenBBalanceBefore);
-
-    assert.equal(
-      (reserve0 * 0.75).toFixed(3),
-      reserve0After.toFixed(3),
-      "Pool reserve did not decrease by 1/4"
-    );
-
-    assert.equal(
-      (reserve1 * 0.75).toFixed(3),
-      reserve1After.toFixed(3),
-      "Pool reserve did not decrease by 1/4"
-    );
   });
 
   it("Should change factory", async () => {
