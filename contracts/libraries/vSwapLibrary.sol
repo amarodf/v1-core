@@ -5,7 +5,7 @@ import "../types.sol";
 import "../interfaces/IvPair.sol";
 
 library vSwapLibrary {
-    uint256 private constant EPSILON = 1 wei;
+    uint256 private constant EPSILON = 1;
     uint256 private constant FACTOR = 1000;
     uint256 private constant MULTIPLIER = 100000 * 1e18;
 
@@ -15,7 +15,7 @@ library vSwapLibrary {
         address ikToken1,
         address jkToken0,
         address jkToken1
-    ) public pure returns (VirtualPoolTokens memory vPoolTokens) {
+    ) internal pure returns (VirtualPoolTokens memory vPoolTokens) {
         (
             vPoolTokens.ik0,
             vPoolTokens.ik1,
@@ -31,7 +31,7 @@ library vSwapLibrary {
     }
 
     function percent(uint256 numerator, uint256 denominator)
-        public
+        internal
         pure
         returns (uint256 quotient)
     {
@@ -46,7 +46,7 @@ library vSwapLibrary {
         uint256 rRatio,
         uint256 _rReserve,
         uint256 _baseReserve
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         return rRatio + (percent(_rReserve * 100, (_baseReserve * 2)) * FACTOR);
     }
 
@@ -55,7 +55,7 @@ library vSwapLibrary {
         uint256 ikTokenBBalance,
         uint256 jkTokenABalance,
         uint256 jkTokenBBalance
-    ) public pure returns (VirtualPoolModel memory vPool) {
+    ) internal pure returns (VirtualPoolModel memory vPool) {
         vPool.reserve0 =
             (ikTokenABalance * Math.min(ikTokenBBalance, jkTokenBBalance)) /
             Math.max(ikTokenBBalance, EPSILON);
@@ -70,7 +70,7 @@ library vSwapLibrary {
         uint256 reserveIn,
         uint256 reserveOut,
         uint256 fee
-    ) public pure returns (uint256 amountIn) {
+    ) internal pure returns (uint256 amountIn) {
         uint256 numerator = (reserveIn * amountOut) * FACTOR;
         uint256 denominator = (reserveOut - amountOut) * fee;
         amountIn = (numerator / denominator) + 1;
@@ -81,7 +81,7 @@ library vSwapLibrary {
         uint256 reserveIn,
         uint256 reserveOut,
         uint256 fee
-    ) public pure returns (uint256 amountOut) {
+    ) internal pure returns (uint256 amountOut) {
         uint256 amountInWithFee = amountIn * fee;
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = (reserveIn * FACTOR) + amountInWithFee;
@@ -92,7 +92,7 @@ library vSwapLibrary {
         uint256 amountA,
         uint256 reserveA,
         uint256 reserveB
-    ) public pure returns (uint256 amountB) {
+    ) internal pure returns (uint256 amountB) {
         require(amountA > 0, "VSWAP: INSUFFICIENT_AMOUNT");
         require(reserveA > 0 && reserveB > 0, "VSWAP: INSUFFICIENT_LIQUIDITY");
         amountB = (amountA * reserveB) / reserveA;
@@ -103,7 +103,7 @@ library vSwapLibrary {
         address baseToken,
         uint256 reserve0,
         uint256 reserve1
-    ) public pure returns (uint256 _reserve0, uint256 _reserve1) {
+    ) internal pure returns (uint256 _reserve0, uint256 _reserve1) {
         (_reserve0, _reserve1) = baseToken == tokenIn
             ? (reserve0, reserve1)
             : (reserve1, reserve0);
@@ -112,7 +112,7 @@ library vSwapLibrary {
     function substractReserveFromLPTokens(
         uint256 liquidity,
         uint256 _reserveRatio
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         return
             (liquidity * ((MULTIPLIER**2) / (MULTIPLIER + _reserveRatio))) /
             MULTIPLIER;
@@ -125,7 +125,7 @@ library vSwapLibrary {
         uint256 jkReserve1,
         uint256 jkvFee,
         address ikPair
-    ) public view returns (VirtualPoolModel memory vPool) {
+    ) internal view returns (VirtualPoolModel memory vPool) {
         (address ik0, address ik1) = IvPair(ikPair).getTokens();
         (address jk0, address jk1) = (jkToken0, jkToken1); //gas saving
 
@@ -156,7 +156,7 @@ library vSwapLibrary {
     }
 
     function getVirtualPool(address jkPair, address ikPair)
-        public
+        internal
         view
         returns (VirtualPoolModel memory vPool)
     {
