@@ -23,6 +23,8 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve1;
 
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
+    uint256 private constant RESERVE_RATIO_FACTOR = 10**3 * 1e18;
+    uint256 private constant RESERVE_RATIO_WHOLE = RESERVE_RATIO_FACTOR * 100;
     uint256 public max_reserve_ratio;
 
     address[] public whitelist;
@@ -279,9 +281,22 @@ contract vPair is IvPair, vSwapERC20 {
 
         //update reserve balance in the equivalent of token0 value
         uint256 _reserveBaseValue = reservesBaseValue[vPool.token1]; //gas saving
-        reservesBaseValue[vPool.token1] =
-            _reserveBaseValue +
-            ((_reserveBaseValue * (reserves[vPool.token1] / amountIn)) / 100);
+        _reserveBaseValue = vSwapLibrary.quote(
+            _reserveBaseValue,
+            vPool.reserve0,
+            vPool.reserve1
+        );
+
+        if (vPool.token0 == token1) {
+            //if tokenOut is not token0 we should quote it to token0 value
+            _reserveBaseValue = vSwapLibrary.quote(
+                _reserveBaseValue,
+                reserve1,
+                reserve0
+            );
+        }
+
+        reservesBaseValue[vPool.token1] = _reserveBaseValue;
 
         //update reserve balance
         reserves[vPool.token1] = reserves[vPool.token1] - amountIn;
@@ -335,10 +350,11 @@ contract vPair is IvPair, vSwapERC20 {
 
         //substract reserve ratio PCT from minted liquidity tokens amount
         uint256 reserveRatio = this.calculateReserveRatio();
-        liquidity = vSwapLibrary.substractReserveFromLPTokens(
-            liquidity,
-            reserveRatio
-        );
+
+        liquidity =
+            liquidity -
+            ((liquidity * reserveRatio) / (RESERVE_RATIO_WHOLE - reserveRatio));
+
         require(liquidity > 0, "ILM");
 
         _mint(to, liquidity);
