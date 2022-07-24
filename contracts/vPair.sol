@@ -93,10 +93,10 @@ contract vPair is IvPair, vSwapERC20 {
 
         SafeERC20.safeTransfer(IERC20(tokenOut), to, amountOut);
 
-        address _inputToken = tokenOut == token0 ? token1 : token0;
+        address _tokenIn = tokenOut == token0 ? token1 : token0;
 
         (uint256 _reserve0, uint256 _reserve1) = vSwapLibrary.sortReserves(
-            _inputToken,
+            _tokenIn,
             token0,
             reserve0,
             reserve1
@@ -118,12 +118,17 @@ contract vPair is IvPair, vSwapERC20 {
             );
         }
 
-        uint256 _amountIn = IERC20(_inputToken).balanceOf(address(this)) -
+        uint256 _amountIn = IERC20(_tokenIn).balanceOf(address(this)) -
             _reserve0;
 
         require(_amountIn > 0 && _amountIn >= _expectedAmountIn, "IIA");
 
-        _update(_reserve0 + _amountIn, _reserve1 - amountOut);
+        bool _isTokenIn0 = _tokenIn == token0;
+
+        _update(
+            _isTokenIn0 ? _reserve0 + _amountIn : _reserve1 - amountOut,
+            _isTokenIn0 ? _reserve1 - amountOut : _reserve0 + _amountIn
+        );
     }
 
     function swapReserveToNative(
@@ -175,20 +180,25 @@ contract vPair is IvPair, vSwapERC20 {
 
         //update reserve balance in the equivalent of token0 value
 
-        uint256 _reserveBaseValue = reservesBaseValue[vPool.token0]; //gas saving
-        if (_reserveBaseValue == 0) {
-            reservesBaseValue[vPool.token0] =
-                reservesBaseValue[vPool.token0] +
-                (
-                    (vPool.token1 == token0)
-                        ? amountOut
-                        : vSwapLibrary.quote(amountOut, reserve1, reserve0)
-                );
-        } else {
-            reservesBaseValue[vPool.token0] =
-                _reserveBaseValue +
-                ((_reserveBaseValue * (_reserveBaseValue / amountOut)) / 100);
+        uint256 _reserveBaseValue = reserves[vPool.token0] + amountIn;
+
+        //calculate quote for reserve asset and base asset
+        _reserveBaseValue = vSwapLibrary.quote(
+            _reserveBaseValue,
+            vPool.reserve0,
+            vPool.reserve1
+        );
+
+        if (vPool.token1 == token1) {
+            //if tokenOut is not token0 we should quote it to token0 value
+            _reserveBaseValue = vSwapLibrary.quote(
+                _reserveBaseValue,
+                reserve1,
+                reserve0
+            );
         }
+
+        reservesBaseValue[vPool.token0] = _reserveBaseValue;
 
         //update reserve balance
         reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
