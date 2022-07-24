@@ -23,7 +23,6 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve1;
 
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
-    uint256 private constant MULTIPLIER = 10**5 * 1e18;
     uint256 public max_reserve_ratio;
 
     address[] public whitelist;
@@ -75,11 +74,21 @@ contract vPair is IvPair, vSwapERC20 {
         emit Sync(balance0, balance1);
     }
 
-    function getReserves() external view override returns (uint256, uint256) {
+    function getReserves()
+        external
+        view
+        override
+        returns (uint256 _reserve0, uint256 _reserve1)
+    {
         return (reserve0, reserve1);
     }
 
-    function getTokens() external view override returns (address, address) {
+    function getTokens()
+        external
+        view
+        override
+        returns (address _token0, address _token1)
+    {
         return (token0, token1);
     }
 
@@ -182,7 +191,7 @@ contract vPair is IvPair, vSwapERC20 {
 
         uint256 _reserveBaseValue = reserves[vPool.token0] + amountIn;
 
-        //calculate quote for reserve asset and base asset
+        //re-calculate price of reserve asset in token0 for the whole pool blance
         _reserveBaseValue = vSwapLibrary.quote(
             _reserveBaseValue,
             vPool.reserve0,
@@ -273,13 +282,6 @@ contract vPair is IvPair, vSwapERC20 {
         reservesBaseValue[vPool.token1] =
             _reserveBaseValue +
             ((_reserveBaseValue * (reserves[vPool.token1] / amountIn)) / 100);
-        // reservesBaseValue[vPool.token1] =
-        //     reservesBaseValue[vPool.token1] -
-        //     (
-        //         (vPool.token1 == token0)
-        //             ? amountIn
-        //             : vSwapLibrary.quote(amountIn, _reserve0, _reserve1)
-        //     );
 
         //update reserve balance
         reserves[vPool.token1] = reserves[vPool.token1] - amountIn;
@@ -296,17 +298,16 @@ contract vPair is IvPair, vSwapERC20 {
         override
         returns (uint256 rRatio)
     {
-        uint256 _baseReserve = reserve0;
+        uint256 _reserve0 = reserve0;
         for (uint256 i = 0; i < whitelist.length; ++i) {
             uint256 _rReserve = reservesBaseValue[whitelist[i]];
             if (_rReserve > 0) {
-                rRatio = vSwapLibrary.calculateReserveRatio(
-                    rRatio,
-                    _rReserve,
-                    _baseReserve
-                );
+                rRatio += (vSwapLibrary.percent(_rReserve, _reserve0 * 2) *
+                    100);
             }
         }
+
+        rRatio *= 1000;
     }
 
     function mint(address to)
@@ -385,8 +386,7 @@ contract vPair is IvPair, vSwapERC20 {
 
                     reservesBaseValue[_wlI] =
                         reserveBaseValuewlI -
-                        ((reserveBaseValuewlI *
-                            (reserveBalance / reserveAmountOut)) / 100);
+                        ((reserveBaseValuewlI * liquidity) / _totalSupply);
 
                     reserves[_wlI] = reserveBalance - reserveAmountOut;
                 }
