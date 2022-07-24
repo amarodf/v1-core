@@ -174,13 +174,21 @@ contract vPair is IvPair, vSwapERC20 {
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
         //update reserve balance in the equivalent of token0 value
-        reservesBaseValue[vPool.token0] =
-            reservesBaseValue[vPool.token0] +
-            (
-                (vPool.token1 == token0)
-                    ? amountOut
-                    : vSwapLibrary.quote(amountOut, reserve1, reserve0)
-            );
+
+        uint256 _reserveBaseValue = reservesBaseValue[vPool.token0]; //gas saving
+        if (_reserveBaseValue == 0) {
+            reservesBaseValue[vPool.token0] =
+                reservesBaseValue[vPool.token0] +
+                (
+                    (vPool.token1 == token0)
+                        ? amountOut
+                        : vSwapLibrary.quote(amountOut, reserve1, reserve0)
+                );
+        } else {
+            reservesBaseValue[vPool.token0] =
+                _reserveBaseValue +
+                ((_reserveBaseValue * (_reserveBaseValue / amountOut)) / 100);
+        }
 
         //update reserve balance
         reserves[vPool.token0] = reserves[vPool.token0] + amountIn;
@@ -251,13 +259,17 @@ contract vPair is IvPair, vSwapERC20 {
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
         //update reserve balance in the equivalent of token0 value
+        uint256 _reserveBaseValue = reservesBaseValue[vPool.token1]; //gas saving
         reservesBaseValue[vPool.token1] =
-            reservesBaseValue[vPool.token1] -
-            (
-                (vPool.token1 == token0)
-                    ? amountIn
-                    : vSwapLibrary.quote(amountIn, _reserve0, _reserve1)
-            );
+            _reserveBaseValue +
+            ((_reserveBaseValue * (reserves[vPool.token1] / amountIn)) / 100);
+        // reservesBaseValue[vPool.token1] =
+        //     reservesBaseValue[vPool.token1] -
+        //     (
+        //         (vPool.token1 == token0)
+        //             ? amountIn
+        //             : vSwapLibrary.quote(amountIn, _reserve0, _reserve1)
+        //     );
 
         //update reserve balance
         reserves[vPool.token1] = reserves[vPool.token1] - amountIn;
@@ -355,18 +367,16 @@ contract vPair is IvPair, vSwapERC20 {
 
                 if (reserveBalance > 0) {
                     uint256 reserveAmountOut = (reserveBalance * liquidity) /
-                        (_totalSupply - MINIMUM_LIQUIDITY);
+                        _totalSupply;
 
                     SafeERC20.safeTransfer(IERC20(_wlI), to, reserveAmountOut);
 
-                    uint256 amountPCT = vSwapLibrary.percent(
-                        reserveAmountOut,
-                        reserveBalance
-                    );
+                    uint256 reserveBaseValuewlI = reservesBaseValue[_wlI]; //gas saving
 
                     reservesBaseValue[_wlI] =
-                        (reservesBaseValue[_wlI] / 1e18) *
-                        (1e18 - amountPCT);
+                        reserveBaseValuewlI -
+                        ((reserveBaseValuewlI *
+                            (reserveBalance / reserveAmountOut)) / 100);
 
                     reserves[_wlI] = reserveBalance - reserveAmountOut;
                 }
