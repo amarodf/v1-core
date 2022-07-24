@@ -64,25 +64,12 @@ contract vRouter is IvRouter {
                     amountsIn[i]
                 );
 
-                //check if swap native to reserve or reserve to native
-                (address jkToken0, address jkToken1) = IvPair(pools[i])
-                    .getTokens();
-
-                if (inputToken == jkToken0 || inputToken == jkToken1) {
-                    IvPair(pools[i]).swapNativeToReserve(
-                        amountsOut[i],
-                        iks[i],
-                        to,
-                        new bytes(0)
-                    );
-                } else {
-                    IvPair(pools[i]).swapReserveToNative(
-                        amountsOut[i],
-                        iks[i],
-                        to,
-                        new bytes(0)
-                    );
-                }
+                IvPair(pools[i]).swapReserveToNative(
+                    amountsOut[i],
+                    iks[i],
+                    to,
+                    new bytes(0)
+                );
             }
         }
     }
