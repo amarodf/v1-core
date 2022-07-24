@@ -485,6 +485,11 @@ contract("vRouter", (accounts) => {
       amountInTokenC
     );
 
+    const pool = await vPair.at(ikPair);
+
+    const cReserve = await pool.reserves(tokenC.address);
+    console.log('cReserve ' + cReserve);
+
     const futureTs = await getFutureBlockTimestamp();
     await vRouterInstance.swap(
       [jkPair],
@@ -676,18 +681,14 @@ contract("vRouter", (accounts) => {
     let reserve0 = await pool.reserve0();
     let reserve1 = await pool.reserve1();
 
-    const amountBDesiredVSwap = await vSwapLibraryInstance.quote(
-      reserve0,
-      reserve1,
-      amountADesired
-    );
-
     let totalBalanceBefore0 = reserve0;
     let totalBalanceBefore1 = reserve1;
 
     const futureTs = await getFutureBlockTimestamp();
 
     let lpBalance = await pool.balanceOf(accounts[0]);
+
+    let poolRR = await pool.calculateReserveRatio();
 
     await vRouterInstance.addLiquidity(
       tokenA.address,
@@ -810,15 +811,10 @@ contract("vRouter", (accounts) => {
     );
 
     const cResrveRatioAfter = await pool.reservesBaseValue(tokenC.address);
-    console.log("cResrveRatio after: " + cResrveRatioAfter);
 
     const cResrveAfter = await pool.reserves(tokenC.address);
-    console.log("cResrveAfter: " + cResrveAfter);
 
     const poolRRAfter = await pool.calculateReserveRatio();
-    console.log(
-      "Pool RR after remove all liquidity: " + fromWeiToNumber(poolRRAfter)
-    );
 
     tokenABalanceBefore = fromWeiToNumber(tokenABalanceBefore);
     tokenBBalanceBefore = fromWeiToNumber(tokenBBalanceBefore);

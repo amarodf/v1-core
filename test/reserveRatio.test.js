@@ -596,19 +596,12 @@ contract("ReserveRatio", (accounts) => {
     reserve0 = fromWeiToNumber(reserve0);
     let poolLiquidity = reserve0 * 2;
 
-    console.log("poolLiquidity " + poolLiquidity);
-
     let reserveRatioPCT =
       ((totalReserves / poolLiquidity) * 100).toFixed(3) * 1;
-
-    console.log("reserveRatioPCT " + reserveRatioPCT);
 
     poolReserveRatio = fromWeiToNumber(poolReserveRatio);
 
     let maxReserveRatio = await pool.max_reserve_ratio();
-    console.log("maxReserveRatio " + fromWeiToNumber(maxReserveRatio));
-
-    console.log("poolReserveRatio " + poolReserveRatio);
 
     assert.equal(
       parseInt(poolReserveRatio),

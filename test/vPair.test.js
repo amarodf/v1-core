@@ -188,9 +188,9 @@ contract("vPair", (accounts) => {
     );
   });
 
-  it("Should flashswap buying B from A/B, swaping B (reserve) to A on pool A/C and payback loan to pool A/B", async function () {
-    await vFlashSwapExample.testFlashswap();
-  });
+  // it("Should flashswap buying B from A/B, swaping B (reserve) to A on pool A/C and payback loan to pool A/B", async function () {
+  //   await vFlashSwapExample.testFlashswap();
+  // });
 
   it("Should set max whitelist count", async () => {
     const maxWhitelist = await vPairInstance.max_whitelist_count();

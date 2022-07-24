@@ -51,7 +51,6 @@ contract flashSwapExample is IvFlashSwapCallback {
     ) external override {
         (address token0, address token1) = IvPair(msg.sender).getTokens();
         address poolAddress = IvPairFactory(factory).getPair(token0, token1);
-        address abPoolAddress = IvPairFactory(factory).getPair(tokenA, tokenB);
 
         require(msg.sender == poolAddress, "VSWAP:INVALID_POOL"); // ensure that msg.sender is actually a registered pair
 
@@ -71,7 +70,7 @@ contract flashSwapExample is IvFlashSwapCallback {
         IvPair(jk).swapReserveToNative(
             vAmountIn,
             ik,
-            abPoolAddress,
+            poolAddress,
             new bytes(0)
         );
 
@@ -93,6 +92,8 @@ contract flashSwapExample is IvFlashSwapCallback {
         address abPoolAddress = IvPairFactory(factory).getPair(tokenA, tokenB);
 
         uint256 amountOut = 10 * 1e18;
+
+
 
         bytes memory encodedAddress = abi.encodePacked(msg.sender);
 
