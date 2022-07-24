@@ -23,7 +23,7 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve1;
 
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
-    uint256 private constant MULTIPLIER = 100000 * 1e18;
+    uint256 private constant MULTIPLIER = 10**5 * 1e18;
     uint256 public max_reserve_ratio;
 
     address[] public whitelist;
