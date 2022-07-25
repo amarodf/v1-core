@@ -270,7 +270,7 @@ contract vPair is IvPair, vSwapERC20 {
 
         liquidity =
             liquidity -
-            ((liquidity * reserveRatio) / (RESERVE_RATIO_WHOLE - reserveRatio));
+            ((liquidity * reserveRatio) / (RESERVE_RATIO_WHOLE + reserveRatio));
 
         require(liquidity > 0, "ILM");
 
