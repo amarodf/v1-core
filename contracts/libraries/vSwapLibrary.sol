@@ -39,15 +39,6 @@ library vSwapLibrary {
         uint256 _quotient = ((_numerator / denominator) + 5) / 10;
         return (_quotient);
     }
-
-    function calculateReserveRatio(
-        uint256 rRatio,
-        uint256 _rReserve,
-        uint256 _baseReserve
-    ) internal pure returns (uint256) {
-        return rRatio + (percent(_rReserve * 100, (_baseReserve * 2)) * FACTOR);
-    }
-
     function calculateVPool(
         uint256 ikTokenABalance,
         uint256 ikTokenBBalance,
