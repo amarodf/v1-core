@@ -23,8 +23,10 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve1;
 
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
-    uint256 private constant RESERVE_RATIO_FACTOR = 10**3 * 1e18;
-    uint256 private constant RESERVE_RATIO_WHOLE = RESERVE_RATIO_FACTOR * 100;
+    uint256 private constant RESERVE_RATIO_FACTOR = 10**3;
+    uint256 private constant RESERVE_RATIO_WHOLE =
+        RESERVE_RATIO_FACTOR * 100 * 1e18;
+
     uint256 public max_reserve_ratio;
 
     address[] public whitelist;
@@ -222,8 +224,6 @@ contract vPair is IvPair, vSwapERC20 {
         );
     }
 
-  
-
     function calculateReserveRatio()
         external
         view
@@ -239,7 +239,7 @@ contract vPair is IvPair, vSwapERC20 {
             }
         }
 
-        rRatio *= 1000;
+        rRatio *= RESERVE_RATIO_FACTOR;
     }
 
     function mint(address to)
