@@ -43,8 +43,27 @@ interface IvPair {
         bytes calldata data
     ) external returns (uint256 _amountIn);
 
+    /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
+    /// @dev The caller of this method receives a callback in the form of IUniswapV3MintCallback#uniswapV3MintCallback
+    /// in which they must pay any token0 or token1 owed for the liquidity. The amount of token0/token1 due depends
+    /// on tickLower, tickUpper, the amount of liquidity, and the current price.
+    /// @param recipient The address for which the liquidity will be created
+    /// @param tickLower The lower tick of the position in which to add liquidity
+    /// @param tickUpper The upper tick of the position in which to add liquidity
+    /// @param amount The amount of liquidity to mint
+    /// @param data Any data that should be passed through to the callback
+    /// @return amount0 The amount of token0 that was paid to mint the given amount of liquidity. Matches the value in the callback
+    /// @return amount1 The amount of token1 that was paid to mint the given amount of liquidity. Matches the value in the callback
     function mint(address to) external returns (uint256 liquidity);
 
+    /// @notice Burn liquidity from the sender and account tokens owed for the liquidity to the position
+    /// @dev Can be used to trigger a recalculation of fees owed to a position by calling with an amount of 0
+    /// @dev Fees must be collected separately via a call to #collect
+    /// @param tickLower The lower tick of the position for which to burn liquidity
+    /// @param tickUpper The upper tick of the position for which to burn liquidity
+    /// @param amount How much liquidity to burn
+    /// @return amount0 The amount of token0 sent to the recipient
+    /// @return amount1 The amount of token1 sent to the recipient
     function burn(address to)
         external
         returns (uint256 amount0, uint256 amount1);
