@@ -10,7 +10,7 @@ import "../interfaces/IMulticall.sol";
 abstract contract Multicall is IMulticall {
     /// @inheritdoc IMulticall
     function multicall(bytes[] calldata data, bool fPartial)
-        public
+        external
         payable
         override
         returns (bytes[] memory results)

@@ -239,7 +239,7 @@ contract vRouter is IvRouter, Multicall {
         address ikPair,
         uint256 amountOut
     ) external view override returns (uint256 amountIn) {
-        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
+        VirtualPoolModel memory vPool = getVirtualPool(jkPair, ikPair);
 
         amountIn = vSwapLibrary.getAmountIn(
             amountOut,
@@ -254,7 +254,7 @@ contract vRouter is IvRouter, Multicall {
         address ikPair,
         uint256 amountIn
     ) external view override returns (uint256 amountOut) {
-        VirtualPoolModel memory vPool = this.getVirtualPool(jkPair, ikPair);
+        VirtualPoolModel memory vPool = getVirtualPool(jkPair, ikPair);
 
         amountOut = vSwapLibrary.getAmountOut(
             amountIn,
@@ -265,7 +265,7 @@ contract vRouter is IvRouter, Multicall {
     }
 
     function getVirtualPool(address jkPair, address ikPair)
-        external
+        public
         view
         override
         returns (VirtualPoolModel memory vPool)

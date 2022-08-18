@@ -52,6 +52,9 @@ contract("Base", (accounts) => {
     await tokenA.approve(vRouterInstance.address, issueAmount);
     await tokenB.approve(vRouterInstance.address, issueAmount);
     await tokenC.approve(vRouterInstance.address, issueAmount);
+
+    let hashcode = await vPairFactoryInstance.getInitCodeHash();
+    console.log(hashcode);
   });
 
   it("Should create pool vFactory", async () => {

@@ -140,7 +140,7 @@ contract vSwapERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` cannot be the zero address.
      */
     function approve(address spender, uint256 amount)
-        public
+        external
         virtual
         override
         returns (bool)
@@ -190,7 +190,7 @@ contract vSwapERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue)
-        public
+        external
         virtual
         returns (bool)
     {
@@ -214,7 +214,7 @@ contract vSwapERC20 is Context, IERC20, IERC20Metadata {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
+        external
         virtual
         returns (bool)
     {

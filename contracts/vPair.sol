@@ -297,7 +297,7 @@ contract vPair is IvPair, vSwapERC20 {
         //update reserve balance
         reserves[vPool.token0] += amountIn;
 
-        require(this.calculateReserveRatio() < max_reserve_ratio, "TBPT"); // reserve amount goes beyond pool threshold
+        require(calculateReserveRatio() < max_reserve_ratio, "TBPT"); // reserve amount goes beyond pool threshold
 
         _update(
             IERC20(token0).balanceOf(address(this)),
@@ -308,7 +308,7 @@ contract vPair is IvPair, vSwapERC20 {
     }
 
     function calculateReserveRatio()
-        external
+        public
         view
         override
         returns (uint256 rRatio)
@@ -349,7 +349,7 @@ contract vPair is IvPair, vSwapERC20 {
         }
 
         //substract reserve ratio PCT from minted liquidity tokens amount
-        uint256 reserveRatio = this.calculateReserveRatio();
+        uint256 reserveRatio = calculateReserveRatio();
 
         liquidity =
             liquidity -
@@ -386,7 +386,7 @@ contract vPair is IvPair, vSwapERC20 {
         SafeERC20.safeTransfer(IERC20(_token1), to, amount1);
 
         //distribute reserve tokens and update reserve ratios
-        uint256 _currentReserveRatio = this.calculateReserveRatio();
+        uint256 _currentReserveRatio = calculateReserveRatio();
         if (_currentReserveRatio > 0) {
             for (uint256 i = 0; i < whitelist.length; ++i) {
                 address _wlI = whitelist[i];
