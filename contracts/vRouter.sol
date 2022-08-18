@@ -66,7 +66,7 @@ contract vRouter is IvRouter, Multicall {
         //validate amount to pay back dont exceeds
         require(
             requiredBackAmount <= data.tokenInMax,
-            "VSWAP:REQUIRED_AMOUNT_EXECEDS"
+            "VSWAP:REQUIRED_AMOUNT_EXCEEDS"
         );
 
         SafeERC20.safeTransferFrom(
@@ -96,7 +96,7 @@ contract vRouter is IvRouter, Multicall {
         address to,
         bytes calldata data,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external   ensure(deadline) {
         getPair(tokenA, tokenB).swapReserveToNative(
             amountOut,
             ikPair,
