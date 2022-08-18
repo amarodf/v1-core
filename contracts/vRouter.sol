@@ -274,22 +274,22 @@ contract vRouter is IvRouter, Multicall {
     }
 
     function quote(
-        address tokenA,
-        address tokenB,
-        uint256 amount
-    ) external view override returns (uint256 quoteR) {
-        IvPair pair = getPair(tokenA, tokenB);
+        address inputToken,
+        address outputToken,
+        uint256 amountIn
+    ) external view override returns (uint256 amountOut) {
+        IvPair pair = getPair(inputToken, outputToken);
 
         (uint256 reserve0, uint256 reserve1) = pair.getReserves();
 
         (reserve0, reserve1) = vSwapLibrary.sortReserves(
-            tokenA,
+            inputToken,
             pair.token0(),
             reserve0,
             reserve1
         );
 
-        quoteR = vSwapLibrary.quote(amount, reserve0, reserve1);
+        amountOut = vSwapLibrary.quote(amountIn, reserve0, reserve1);
     }
 
     function getAmountOut(
@@ -339,7 +339,10 @@ contract vRouter is IvRouter, Multicall {
     }
 
     function changeFactory(address _factory) external override onlyOwner {
-        require(_factory > address(0) && _factory == factory, "VSWAP:INVALID_FACTORY");
+        require(
+            _factory > address(0) && _factory == factory,
+            "VSWAP:INVALID_FACTORY"
+        );
         factory = _factory;
     }
 }
