@@ -105,7 +105,8 @@ contract vPair is IvPair, vSwapERC20 {
         bytes memory data
     ) external override lock returns (uint256 _amountIn) {
         require(to > address(0), "IT"); // INVALID TO
-
+        require(tokenOut == token0 || tokenOut == token1, "NNT");
+        
         SafeERC20.safeTransfer(IERC20(tokenOut), to, amountOut);
 
         address _tokenIn = tokenOut == token0 ? token1 : token0;
