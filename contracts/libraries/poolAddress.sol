@@ -6,7 +6,7 @@ import "../interfaces/IvPairFactory.sol";
 /// @title Provides functions for deriving a pool address from the factory and token
 library PoolAddress {
     bytes32 internal constant POOL_INIT_CODE_HASH =
-        0xfefb029c9480094a00ec7484f37e567934be07ae6f34dc50f171a6c9a1cc6fd0;
+        0x7c20c2b09692bf630c31c90db4ce8878ab850e22a6ba00f81a1e1ce42287c914;
 
     function orderAddresses(address tokenA, address tokenB)
         internal

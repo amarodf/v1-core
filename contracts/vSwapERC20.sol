@@ -42,8 +42,8 @@ contract vSwapERC20 is Context, IERC20, IERC20Metadata {
 
     uint256 private _totalSupply;
 
-    string private _name = "Virtuswap-LP";
-    string private _symbol = "VSWAPLP";
+    string private constant _name = "Virtuswap-LP";
+    string private constant _symbol = "VSWAPLP";
 
     /**
      * @dev Returns the name of the token.
