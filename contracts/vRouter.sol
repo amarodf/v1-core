@@ -51,7 +51,7 @@ contract vRouter is IvRouter, Multicall {
 
     function vFlashSwapCallback(
         uint256 requiredBackAmount,
-        bytes memory callbackData
+        bytes calldata callbackData
     ) external override {
         SwapCallbackData memory data = abi.decode(
             callbackData,

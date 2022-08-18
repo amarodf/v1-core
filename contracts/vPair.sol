@@ -102,7 +102,7 @@ contract vPair is IvPair, vSwapERC20 {
         uint256 amountOut,
         address tokenOut,
         address to,
-        bytes memory data
+        bytes calldata data
     ) external override lock returns (uint256 _amountIn) {
         require(to > address(0), "IT"); // INVALID TO
         require(tokenOut == token0 || tokenOut == token1, "NNT");
