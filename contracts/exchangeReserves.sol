@@ -7,7 +7,7 @@ import "./interfaces/IvPairFactory.sol";
 import "./interfaces/IvFlashSwapCallback.sol";
 
 contract exchangeReserves is IvFlashSwapCallback {
-    address factory;
+    address immutable factory;
 
     constructor(address _factory) {
         factory = _factory;
