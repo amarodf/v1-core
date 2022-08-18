@@ -19,12 +19,12 @@ contract vRouter is IvRouter, Multicall {
     address public immutable override owner;
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "VSWAP:ONLY_OWNER");
         _;
     }
 
     modifier ensure(uint256 deadline) {
-        require(deadline >= block.timestamp, "VSWAP: EXPIRED");
+        require(deadline >= block.timestamp, "VSWAP:EXPIRED");
         _;
     }
 
@@ -96,7 +96,7 @@ contract vRouter is IvRouter, Multicall {
         address to,
         bytes calldata data,
         uint256 deadline
-    ) external   ensure(deadline) {
+    ) external ensure(deadline) {
         getPair(tokenA, tokenB).swapReserveToNative(
             amountOut,
             ikPair,
