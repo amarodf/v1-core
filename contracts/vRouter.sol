@@ -339,6 +339,7 @@ contract vRouter is IvRouter, Multicall {
     }
 
     function changeFactory(address _factory) external override onlyOwner {
+        require(_factory > address(0) && _factory == factory, "VSWAP:INVALID_FACTORY");
         factory = _factory;
     }
 }

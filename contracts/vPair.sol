@@ -104,9 +104,10 @@ contract vPair is IvPair, vSwapERC20 {
         address to,
         bytes calldata data
     ) external override lock returns (uint256 _amountIn) {
-        require(to > address(0), "IT"); // INVALID TO
+        require(to > address(0) && to != token0 && to != token1, "IT");
         require(tokenOut == token0 || tokenOut == token1, "NNT");
-        
+        require(amountOut > 0, "IAO");
+
         SafeERC20.safeTransfer(IERC20(tokenOut), to, amountOut);
 
         address _tokenIn = tokenOut == token0 ? token1 : token0;
@@ -156,6 +157,9 @@ contract vPair is IvPair, vSwapERC20 {
         lock
         returns (uint256 _amountIn)
     {
+        require(amountOut > 0, "IAO");
+        require(to > address(0) && to != token0 && to != token1, "IT");
+
         VirtualPoolModel memory vPool = vSwapLibrary.getVirtualPool(
             ikPair,
             address(this)
@@ -232,6 +236,9 @@ contract vPair is IvPair, vSwapERC20 {
         address to,
         bytes calldata data
     ) external override lock returns (uint256 amountIn) {
+        require(amountOut > 0, "IAO");
+        require(to > address(0) && to != token0 && to != token1, "IT");
+
         VirtualPoolModel memory vPool = vSwapLibrary.getVirtualPoolBase(
             token0,
             token1,
@@ -437,6 +444,7 @@ contract vPair is IvPair, vSwapERC20 {
     }
 
     function setFactory(address _factory) external onlyFactoryAdmin {
+        require(_factory > address(0) && _factory == factory, "IF");
         factory = _factory;
     }
 
