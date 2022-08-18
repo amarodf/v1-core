@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.2;
 
 struct VirtualPoolModel {
     uint24 fee;

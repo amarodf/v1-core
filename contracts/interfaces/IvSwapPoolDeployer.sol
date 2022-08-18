@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.2;
 
 
 /// @title An interface for a contract that is capable of deploying Uniswap V3 Pools
