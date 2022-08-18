@@ -75,8 +75,13 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
 
     function setExchangeReservesAddress(address _exchangeReserves)
         external
+        override
         onlyAdmin
     {
         exchangeReserves = _exchangeReserves;
+    }
+
+    function getInitCodeHash() external pure returns (bytes32) {
+        return keccak256(abi.encodePacked(type(vPair).creationCode));
     }
 }
