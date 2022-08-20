@@ -444,8 +444,10 @@ contract vPair is IvPair, vSwapERC20 {
     }
 
     function setFactory(address _factory) external onlyFactoryAdmin {
-        require(_factory > address(0) && _factory == factory, "IF");
+        require(_factory > address(0) && _factory == factory, "IFA");
         factory = _factory;
+
+        emit FactoryChanged(_factory);
     }
 
     function setFee(uint24 _fee, uint24 _vFee)
@@ -453,8 +455,11 @@ contract vPair is IvPair, vSwapERC20 {
         override
         onlyFactoryAdmin
     {
+        require(_fee > 0 && _vFee > 0, "IFC");
         fee = _fee;
         vFee = _vFee;
+
+        emit FeeChanged(_fee, _vFee);
     }
 
     function setMaxReserveThreshold(uint256 threshold)
@@ -462,7 +467,10 @@ contract vPair is IvPair, vSwapERC20 {
         override
         onlyFactoryAdmin
     {
+        require(threshold > 0, "IRT");
         max_reserve_ratio = threshold;
+
+        emit ReserveThresholdChanged(threshold);
     }
 
     function setMaxWhitelistCount(uint24 maxWhitelist)
@@ -471,5 +479,6 @@ contract vPair is IvPair, vSwapERC20 {
         onlyFactoryAdmin
     {
         max_whitelist_count = maxWhitelist;
+        emit WhitelistCountChanged(maxWhitelist);
     }
 }

@@ -8,6 +8,8 @@ interface IvPairFactory {
         address token1
     );
 
+    event ExchangeReserveAddressChanged(address newExchangeReserve);
+
     function createPair(address tokenA, address tokenB)
         external
         returns (address);

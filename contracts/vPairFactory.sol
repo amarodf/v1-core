@@ -78,7 +78,13 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
         override
         onlyAdmin
     {
+        require(
+            _exchangeReserves > address(0),
+            "VSWAP:INVALID_EXCHANGE_RESERVE_ADDRESS"
+        );
         exchangeReserves = _exchangeReserves;
+
+        emit ExchangeReserveAddressChanged(_exchangeReserves);
     }
 
     function getInitCodeHash() external pure returns (bytes32) {

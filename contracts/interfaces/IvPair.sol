@@ -16,6 +16,14 @@ interface IvPair {
 
     event ReserveSync(address asset, uint256 balance);
 
+    event FactoryChanged(address newFactory);
+
+    event FeeChanged(uint24 fee, uint24 vFee);
+
+    event ReserveThresholdChanged(uint256 newThreshold);
+
+    event WhitelistCountChanged(uint256 newCount);
+
     function fee() external view returns (uint24);
 
     function vFee() external view returns (uint24);
