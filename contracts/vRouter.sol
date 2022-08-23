@@ -85,6 +85,7 @@ contract vRouter is IvRouter, Multicall {
         bytes calldata data,
         uint256 deadline
     ) external override ensure(deadline) {
+        require(data.length > 0, "VSWAP:INVALID_REQUEST");
         getPair(tokenA, tokenB).swapNative(amountOut, tokenB, to, data);
     }
 
@@ -97,6 +98,8 @@ contract vRouter is IvRouter, Multicall {
         bytes calldata data,
         uint256 deadline
     ) external override ensure(deadline) {
+        require(data.length > 0, "VSWAP:INVALID_REQUEST");
+
         getPair(tokenA, tokenB).swapReserveToNative(
             amountOut,
             ikPair,
