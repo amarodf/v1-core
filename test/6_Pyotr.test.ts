@@ -6,24 +6,53 @@ import utils from "./utils";
 import _ from "lodash";
 import { VPair__factory } from "../typechain-types/index";
 
+const EPS = 0.0001
+
 describe("Pyotr tests", () => {
   let accounts: any = [];
   let fixture: any = {};
 
   before(async function () {
     fixture = await loadFixture(tokensFixture);
-  });
-
-  it("Should create pool A/B", async () => {
+    
     const tokenA = fixture.tokenA;
     const tokenB = fixture.tokenB;
+    const tokenC = fixture.tokenC;
+    const tokenD = fixture.tokenD;
     const owner = fixture.owner;
+
+    const account1 = fixture.accounts[0]
+    await tokenA.transfer(account1.address, 300)
+    await tokenB.transfer(account1.address, 200)
+    await tokenD.transfer(account1.address, 550)
+
+    const account2 = fixture.accounts[1]
+    await tokenA.transfer(account2.address, 200)
+    await tokenC.transfer(account2.address, 50)
+
+    const account3 = fixture.accounts[2]
+    await tokenB.transfer(account3.address, 300)
+    await tokenD.transfer(account3.address, 450)
+
+    const account4 = fixture.accounts[3]
+    await tokenC.transfer(account4.address, 20)
+    await tokenD.transfer(account4.address, 230)
+
+    const account5 = fixture.accounts[4]
+    await tokenB.transfer(account5.address, 100)
+    await tokenD.transfer(account5.address, 150)
+    
+  });
+
+  it("Test 1", async() => {
+    const tokenA = fixture.tokenA;
+    const tokenB = fixture.tokenB;
+    const trader = fixture.accounts[0];
 
     const vRouterInstance = fixture.vRouterInstance;
 
-    // create pool A/B with 10,000 A and equivalent B
-    let AInput = 10000 * fixture.A_PRICE;
-    let BInput = (fixture.B_PRICE / fixture.A_PRICE) * AInput;
+    let AInput = 100;
+    let BInput = 200;
 
     await vRouterInstance.addLiquidity(
       tokenA.address,
@@ -32,7 +61,7 @@ describe("Pyotr tests", () => {
       ethers.utils.parseEther(BInput.toString()),
       ethers.utils.parseEther(AInput.toString()),
       ethers.utils.parseEther(BInput.toString()),
-      owner.address,
+      trader.address,
       await utils.getFutureBlockTimestamp()
     );
 
@@ -40,10 +69,55 @@ describe("Pyotr tests", () => {
       tokenA.address,
       tokenB.address
     );
-    const abPool = VPair__factory.connect(abAddress, owner);
+
+    const abPool = VPair__factory.connect(abAddress, trader);
     fixture.abPool = abPool;
+    
+    const lp_tokens_gained = await abPool.balanceOf(trader.address)
+    const lp_tokens_should_be_gained = Math.sqrt(AInput * BInput)
+    const difference = Math.abs(lp_tokens_gained.toNumber() - lp_tokens_should_be_gained)
+    expect(difference).lessThan(EPS)
+
   });
 
+  it("Test 2", async() => {
+    const tokenA = fixture.tokenA;
+    const tokenC = fixture.tokenC;
+    const trader = fixture.accounts[1];
+
+    const vRouterInstance = fixture.vRouterInstance;
+
+    let AInput = 50;
+    let CInput = 200;
+
+    await vRouterInstance.addLiquidity(
+      tokenA.address,
+      tokenC.address,
+      ethers.utils.parseEther(AInput.toString()),
+      ethers.utils.parseEther(CInput.toString()),
+      ethers.utils.parseEther(AInput.toString()),
+      ethers.utils.parseEther(CInput.toString()),
+      trader.address,
+      await utils.getFutureBlockTimestamp()
+    );
+
+    const acAddress = await fixture.vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenC.address
+    );
+
+    const acPool = VPair__factory.connect(acAddress, trader);
+    fixture.acPool = acPool;
+    
+    const lp_tokens_gained_in_wei = await acPool.balanceOf(trader.address)
+    const lp_tokens_gained = utils.fromWeiToNumber(lp_tokens_gained_in_wei.toNumber())
+    const lp_tokens_should_be_gained = Math.sqrt(AInput * CInput)
+    const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained)
+    expect(difference).lessThan(EPS)
+   // expect(lp_tokens_gained, 'FAIL').to.equal(lp_tokens_should_be_gained)
+
+  });
+/*
   it("Should create pool B/C", async () => {
     const tokenB = fixture.tokenB;
     const tokenC = fixture.tokenC;
@@ -189,6 +263,7 @@ describe("Pyotr tests", () => {
 
 
     expect(quote).to.greaterThan(0);
+    
   });
 
   it("Should (amountIn(amountOut(x)) = x)", async () => {
@@ -214,7 +289,7 @@ describe("Pyotr tests", () => {
     expect(amountOutEth).to.equal(395);
   });
 
-  it("Should calculate virtual pool A/C using B/C as oracle", async () => {
+  it("Should calculate virtual pool A/C using A/B and B/C as oracle", async () => {
     const abPool = fixture.abPool;
     const bcPool = fixture.bcPool;
 
@@ -307,4 +382,6 @@ describe("Pyotr tests", () => {
 
     expect(tokenABalanceAfter).to.above(tokenABalanceBefore);
   });
+*/
+
 });
