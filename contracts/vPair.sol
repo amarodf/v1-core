@@ -127,7 +127,7 @@ contract vPair is IvPair, vSwapERC20 {
         );
 
         if (data.length > 0) {
-            IvFlashSwapCallback(to).vFlashSwapCallback(
+            IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
                 requiredAmountIn,
                 data
             );
@@ -185,7 +185,7 @@ contract vPair is IvPair, vSwapERC20 {
         );
 
         if (data.length > 0)
-            IvFlashSwapCallback(to).vFlashSwapCallback(
+            IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
                 requiredAmountIn,
                 data
             );
@@ -268,7 +268,7 @@ contract vPair is IvPair, vSwapERC20 {
         );
 
         if (data.length > 0)
-            IvFlashSwapCallback(to).vFlashSwapCallback(
+            IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
                 requiredAmountIn,
                 data
             );

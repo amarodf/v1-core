@@ -13,7 +13,7 @@ contract exchangeReserves is IvFlashSwapCallback {
         factory = _factory;
     }
 
-    function vFlashSwapCallback(uint256 requiredBackAmount, bytes memory data)
+    function vFlashSwapCallback(uint256 requiredBackAmount, bytes calldata data)
         external
         override
     {

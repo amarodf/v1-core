@@ -1,5 +1,7 @@
 pragma solidity 0.8.2;
 
+import "../types.sol";
+
 interface IvPair {
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
 

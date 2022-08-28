@@ -220,14 +220,6 @@ contract("ReserveRatio", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -235,8 +227,8 @@ contract("ReserveRatio", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 
@@ -294,14 +286,6 @@ contract("ReserveRatio", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -309,8 +293,8 @@ contract("ReserveRatio", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 
@@ -367,14 +351,6 @@ contract("ReserveRatio", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -382,8 +358,8 @@ contract("ReserveRatio", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 
@@ -438,14 +414,6 @@ contract("ReserveRatio", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -453,8 +421,8 @@ contract("ReserveRatio", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 

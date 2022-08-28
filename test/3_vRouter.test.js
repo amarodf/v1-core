@@ -1,5 +1,6 @@
 const vRouter = artifacts.require("vRouter");
 const vPair = artifacts.require("vPair");
+const WETH9 = artifacts.require("WETH9");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const { catchRevert } = require("./exceptions");
@@ -21,11 +22,11 @@ contract("vRouter", (accounts) => {
   const B_PRICE = 3;
   const C_PRICE = 6;
 
-  let tokenA, tokenB, tokenC, WETH;
+  let tokenA, tokenB, tokenC;
 
   const issueAmount = web3.utils.toWei("100000000000000", "ether");
 
-  let vPairFactoryInstance, vRouterInstance, vSwapLibraryInstance;
+  let vPairFactoryInstance, vRouterInstance, vSwapLibraryInstance, WETHInstance;
 
   before(async () => {
     tokenA = await ERC20.new("tokenA", "A", issueAmount, accounts[0]);
@@ -37,12 +38,40 @@ contract("vRouter", (accounts) => {
     vPairFactoryInstance = await vPairFactory.deployed();
     vRouterInstance = await vRouter.deployed();
     vSwapLibraryInstance = await vSwapLibrary.deployed();
+    WETHInstance = await WETH9.deployed();
+
+    let ethBalance = await web3.eth.getBalance(accounts[0]);
+    console.log("ethBalance " + ethBalance);
+
+    await WETHInstance.deposit({ value: web3.utils.toWei("50", "ether") });
+    let wEthBalance = await WETHInstance.balanceOf(accounts[0]);
+
+    console.log("wEthBalance " + wEthBalance);
+
+    ethBalance = await web3.eth.getBalance(accounts[0]);
+    console.log("ethBalance after" + ethBalance);
 
     await tokenA.approve(vRouterInstance.address, issueAmount);
     await tokenB.approve(vRouterInstance.address, issueAmount);
     await tokenC.approve(vRouterInstance.address, issueAmount);
+    await WETHInstance.approve(vRouterInstance.address, issueAmount);
 
     const futureTs = await getFutureBlockTimestamp();
+
+    // create pool WETH/A with 50 WETH and equivalent 50 A
+    let AAInput = web3.utils.toWei("50", "ether");
+    let WETHInput = wEthBalance;
+
+    await vRouterInstance.addLiquidity(
+      tokenA.address,
+      WETHInstance.address,
+      AAInput,
+      WETHInput,
+      AAInput,
+      WETHInput,
+      accounts[0],
+      futureTs
+    );
 
     // create pool A/B with 10,000 A and equivalent B
     let AInput = 10000 * A_PRICE;
@@ -146,207 +175,301 @@ contract("vRouter", (accounts) => {
     // console.log("pool3: B/C: " + reserve0Pool3 + "/" + reserve1Pool3);
   });
 
-  it("Should quote A to B", async () => {
-    const address = await vPairFactoryInstance.getPair(
+  // it("Should quote A to B", async () => {
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+  //   const pool = await vPair.at(address);
+
+  //   const input = web3.utils.toWei("14", "ether");
+
+  //   const quote = await vRouterInstance.quote(
+  //     tokenA.address,
+  //     tokenB.address,
+  //     input
+  //   );
+
+  //   const token0 = await pool.token0();
+
+  //   const reserves = await pool.getReserves();
+
+  //   let tokenAReserve = 0;
+  //   let tokenBReserve = 0;
+
+  //   if (token0 == tokenA.address) {
+  //     tokenAReserve = reserves._reserve0;
+  //     tokenBReserve = reserves._reserve1;
+  //   } else {
+  //     tokenAReserve = reserves._reserve1;
+  //     tokenBReserve = reserves._reserve0;
+  //   }
+
+  //   const ratio = tokenAReserve / tokenBReserve;
+
+  //   assert.equal(quote * ratio, input, "Invalid quote");
+  //   assert.equal(fromWeiToNumber(quote), 42, "Invalid quote");
+  // });
+
+  // it("Should (amountIn(amountOut(x)) = x)", async () => {
+  //   const X = web3.utils.toWei("395", "ether");
+  //   const fee = 997;
+
+  //   const address = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+
+  //   const amountIn = await vRouterInstance.getAmountIn(
+  //     tokenA.address,
+  //     tokenB.address,
+  //     X
+  //   );
+
+  //   const amountOut = await vRouterInstance.getAmountOut(
+  //     tokenA.address,
+  //     tokenB.address,
+  //     amountIn
+  //   );
+
+  //   const amountOutEth = web3.utils.fromWei(amountOut, "ether") * 1;
+  //   const xEth = web3.utils.fromWei(X, "ether") * 1;
+  //   assert.equal(amountOutEth, xEth, "Invalid getAmountIn / getAmountOut");
+  // });
+
+  // it("Should calculate virtual pool A/C using B/C as oracle", async () => {
+  //   const ik = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+
+  //   const jk = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   const vPool = await vRouterInstance.getVirtualPool(jk, ik);
+
+  //   assert(vPool.reserve0 / vPool.reserve1 == A_PRICE / C_PRICE);
+  //   assert(vPool.token0 == tokenA.address && vPool.token1 == tokenC.address);
+  // });
+
+  // it("Should calculate virtual pool B/C using A/B as oracle", async () => {
+  //   const ik = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenA.address
+  //   );
+
+  //   const jk = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenC.address
+  //   );
+
+  //   const vPool = await vRouterInstance.getVirtualPool(jk, ik);
+
+  //   assert(vPool.reserve0 / vPool.reserve1 == B_PRICE / C_PRICE);
+  //   assert(vPool.token0 == tokenB.address && vPool.token1 == tokenC.address);
+  // });
+
+  // it("Should calculate virtual pool A/B using B/C as oracle", async () => {
+  //   const ik = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenC.address
+  //   );
+
+  //   const jk = await vPairFactoryInstance.getPair(
+  //     tokenC.address,
+  //     tokenB.address
+  //   );
+
+  //   const vPool = await vRouterInstance.getVirtualPool(jk, ik);
+
+  //   assert(vPool.reserve0 / vPool.reserve1 == A_PRICE / B_PRICE);
+  //   assert(vPool.token0 == tokenA.address && vPool.token1 == tokenB.address);
+  // });
+
+  // it("Should calculate virtual pool B/A using B/C as oracle", async () => {
+  //   const ik = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   const jk = await vPairFactoryInstance.getPair(
+  //     tokenC.address,
+  //     tokenA.address
+  //   );
+
+  //   const vPool = await vRouterInstance.getVirtualPool(jk, ik);
+
+  //   assert(vPool.reserve0 / vPool.reserve1 == B_PRICE / A_PRICE);
+  //   assert(vPool.token0 == tokenB.address && vPool.token1 == tokenA.address);
+  // });
+
+  // it("Should getVirtualAmountIn for buying 10 B in virtual pool A/B", async () => {
+  //   const ikPair = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   const jkPair = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenC.address
+  //   );
+
+  //   const amountOut = web3.utils.toWei("10", "ether");
+
+  //   const amountIn = await vRouterInstance.getVirtualAmountIn(
+  //     ikPair,
+  //     jkPair,
+  //     amountOut
+  //   );
+
+  //   assert.equal(fromWeiToNumber(amountIn).toFixed(3), 3.344);
+  // });
+
+  // it("Should getVirtualAmountOut", async () => {
+  //   const ikPair = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+
+  //   const jkPair = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   const amountIn = web3.utils.toWei("10", "ether");
+
+  //   const amountOut = await vRouterInstance.getVirtualAmountOut(
+  //     jkPair,
+  //     ikPair,
+  //     amountIn
+  //   );
+  //   assert(amountOut > 0);
+  // });
+
+  // it("Should getVirtualAmountIn(getVirtualAmountOut(x)) = x", async () => {
+  //   const ikPair = await vPairFactoryInstance.getPair(
+  //     tokenA.address,
+  //     tokenB.address
+  //   );
+
+  //   const jkPair = await vPairFactoryInstance.getPair(
+  //     tokenB.address,
+  //     tokenC.address
+  //   );
+
+  //   const _amountOut = web3.utils.toWei("6", "ether");
+
+  //   const amountIn = await vRouterInstance.getVirtualAmountIn(
+  //     jkPair,
+  //     ikPair,
+  //     _amountOut
+  //   );
+
+  //   const amountOut = await vRouterInstance.getVirtualAmountOut(
+  //     jkPair,
+  //     ikPair,
+  //     amountIn
+  //   );
+
+  //   assert(
+  //     fromWeiToNumber(_amountOut) == fromWeiToNumber(amountOut),
+  //     "Not equal"
+  //   );
+  // });
+
+  it("Should swap ETH to A on pool A/WETH", async () => {
+    const poolAddress = await vPairFactoryInstance.getPair(
       tokenA.address,
-      tokenB.address
+      WETHInstance.address
     );
-    const pool = await vPair.at(address);
 
-    const input = web3.utils.toWei("14", "ether");
+    const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    const ethBalanceBefore = await web3.eth.getBalance(accounts[0]);
 
-    const quote = await vRouterInstance.quote(
+    let amountOut = web3.utils.toWei("10", "ether");
+
+    let amountIn = await vRouterInstance.getAmountIn(
+      WETHInstance.address,
       tokenA.address,
-      tokenB.address,
-      input
-    );
-
-    const token0 = await pool.token0();
-
-    const reserves = await pool.getReserves();
-
-    let tokenAReserve = 0;
-    let tokenBReserve = 0;
-
-    if (token0 == tokenA.address) {
-      tokenAReserve = reserves._reserve0;
-      tokenBReserve = reserves._reserve1;
-    } else {
-      tokenAReserve = reserves._reserve1;
-      tokenBReserve = reserves._reserve0;
-    }
-
-    const ratio = tokenAReserve / tokenBReserve;
-
-    assert.equal(quote * ratio, input, "Invalid quote");
-    assert.equal(fromWeiToNumber(quote), 42, "Invalid quote");
-  });
-
-  it("Should (amountIn(amountOut(x)) = x)", async () => {
-    const X = web3.utils.toWei("395", "ether");
-    const fee = 997;
-
-    const address = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-
-    const amountIn = await vRouterInstance.getAmountIn(
-      tokenA.address,
-      tokenB.address,
-      X
-    );
-
-    const amountOut = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
-    const amountOutEth = web3.utils.fromWei(amountOut, "ether") * 1;
-    const xEth = web3.utils.fromWei(X, "ether") * 1;
-    assert.equal(amountOutEth, xEth, "Invalid getAmountIn / getAmountOut");
-  });
-
-  it("Should calculate virtual pool A/C using B/C as oracle", async () => {
-    const ik = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-
-    const jk = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenC.address
-    );
-
-    const vPool = await vRouterInstance.getVirtualPool(jk, ik);
-
-    assert(vPool.reserve0 / vPool.reserve1 == A_PRICE / C_PRICE);
-    assert(vPool.token0 == tokenA.address && vPool.token1 == tokenC.address);
-  });
-
-  it("Should calculate virtual pool B/C using A/B as oracle", async () => {
-    const ik = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenA.address
-    );
-
-    const jk = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenC.address
-    );
-
-    const vPool = await vRouterInstance.getVirtualPool(jk, ik);
-
-    assert(vPool.reserve0 / vPool.reserve1 == B_PRICE / C_PRICE);
-    assert(vPool.token0 == tokenB.address && vPool.token1 == tokenC.address);
-  });
-
-  it("Should calculate virtual pool A/B using B/C as oracle", async () => {
-    const ik = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenC.address
-    );
-
-    const jk = await vPairFactoryInstance.getPair(
-      tokenC.address,
-      tokenB.address
-    );
-
-    const vPool = await vRouterInstance.getVirtualPool(jk, ik);
-
-    assert(vPool.reserve0 / vPool.reserve1 == A_PRICE / B_PRICE);
-    assert(vPool.token0 == tokenA.address && vPool.token1 == tokenB.address);
-  });
-
-  it("Should calculate virtual pool B/A using B/C as oracle", async () => {
-    const ik = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenC.address
-    );
-
-    const jk = await vPairFactoryInstance.getPair(
-      tokenC.address,
-      tokenA.address
-    );
-
-    const vPool = await vRouterInstance.getVirtualPool(jk, ik);
-
-    assert(vPool.reserve0 / vPool.reserve1 == B_PRICE / A_PRICE);
-    assert(vPool.token0 == tokenB.address && vPool.token1 == tokenA.address);
-  });
-
-  it("Should getVirtualAmountIn for buying 10 B in virtual pool A/B", async () => {
-    const ikPair = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenC.address
-    );
-
-    const jkPair = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenC.address
-    );
-
-    const amountOut = web3.utils.toWei("10", "ether");
-
-    const amountIn = await vRouterInstance.getVirtualAmountIn(
-      ikPair,
-      jkPair,
       amountOut
     );
 
-    assert.equal(fromWeiToNumber(amountIn).toFixed(3), 3.344);
+    const futureTs = await getFutureBlockTimestamp();
+
+    //Conversion errors of weiToNumber
+    amountIn = web3.utils.toWei(
+      (fromWeiToNumber(amountIn.toString()) * 1.001).toFixed(5),
+      "ether"
+    );
+
+    await vRouterInstance.swapToExactNative(
+      WETHInstance.address,
+      tokenA.address,
+      amountOut,
+      amountIn,
+      accounts[0],
+      futureTs,
+      { value: amountIn }
+    );
+
+    const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    const ethBalanceAfter = await web3.eth.getBalance(accounts[0]);
+
+    expect(fromWeiToNumber(ethBalanceAfter)).to.be.lessThan(
+      fromWeiToNumber(ethBalanceBefore)
+    );
+
+    expect(fromWeiToNumber(tokenABalanceAfter)).to.above(
+      fromWeiToNumber(tokenABalanceBefore)
+    );
   });
 
-  it("Should getVirtualAmountOut", async () => {
-    const ikPair = await vPairFactoryInstance.getPair(
+  it("Should swap A to ETH on pool A/WETH", async () => {
+    const poolAddress = await vPairFactoryInstance.getPair(
       tokenA.address,
-      tokenB.address
+      WETHInstance.address
     );
 
-    const jkPair = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenC.address
-    );
+    const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
+    const ethBalanceBefore = await web3.eth.getBalance(accounts[0]);
 
-    const amountIn = web3.utils.toWei("10", "ether");
+    let amountOut = web3.utils.toWei("10", "ether");
 
-    const amountOut = await vRouterInstance.getVirtualAmountOut(
-      jkPair,
-      ikPair,
-      amountIn
-    );
-    assert(amountOut > 0);
-  });
-
-  it("Should getVirtualAmountIn(getVirtualAmountOut(x)) = x", async () => {
-    const ikPair = await vPairFactoryInstance.getPair(
+    let amountIn = await vRouterInstance.getAmountIn(
       tokenA.address,
-      tokenB.address
+      WETHInstance.address,
+      amountOut
     );
 
-    const jkPair = await vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenC.address
+    const futureTs = await getFutureBlockTimestamp();
+
+    //Conversion errors of weiToNumber
+    amountIn = web3.utils.toWei(
+      (fromWeiToNumber(amountIn.toString()) * 1.001).toFixed(5),
+      "ether"
     );
 
-    const _amountOut = web3.utils.toWei("6", "ether");
-
-    const amountIn = await vRouterInstance.getVirtualAmountIn(
-      jkPair,
-      ikPair,
-      _amountOut
+    await vRouterInstance.swapToExactNative(
+      tokenA.address,
+      WETHInstance.address,
+      amountOut,
+      amountIn,
+      accounts[0],
+      futureTs,
+      { value: amountIn }
     );
 
-    const amountOut = await vRouterInstance.getVirtualAmountOut(
-      jkPair,
-      ikPair,
-      amountIn
+    const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
+    const ethBalanceAfter = await web3.eth.getBalance(accounts[0]);
+
+    expect(fromWeiToNumber(ethBalanceAfter)).to.be.lessThan(
+      fromWeiToNumber(ethBalanceBefore)
     );
 
-    assert(
-      fromWeiToNumber(_amountOut) == fromWeiToNumber(amountOut),
-      "Not equal"
+    expect(fromWeiToNumber(tokenABalanceAfter)).to.above(
+      fromWeiToNumber(tokenABalanceBefore)
     );
   });
 
@@ -375,20 +498,12 @@ contract("vRouter", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenC.address,
-      amountIn
-    );
-
     await vRouterInstance.swapToExactNative(
       tokenC.address,
       tokenA.address,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 
@@ -426,14 +541,6 @@ contract("vRouter", (accounts) => {
       amountIn
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenA.address,
-      tokenA.address,
-      tokenC.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     let multiData = [];
@@ -443,8 +550,8 @@ contract("vRouter", (accounts) => {
         tokenA.address,
         tokenC.address,
         amountOut,
+        amountIn,
         accounts[0],
-        data,
         futureTs
       )
       .encodeABI();
@@ -494,14 +601,6 @@ contract("vRouter", (accounts) => {
 
     amountInTokenC = amountIn;
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenB.address,
-      tokenA.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -509,8 +608,8 @@ contract("vRouter", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
   });
@@ -546,8 +645,7 @@ contract("vRouter", (accounts) => {
       accounts[0],
       tokenA.address,
       tokenB.address,
-      tokenC.address,
-      amountIn
+      tokenC.address
     );
 
     const futureTs = await getFutureBlockTimestamp();
@@ -556,8 +654,8 @@ contract("vRouter", (accounts) => {
       tokenC.address,
       ikPair,
       amountInTokenC,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
   });
@@ -598,14 +696,6 @@ contract("vRouter", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenC.address,
-      realAmountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
     let multiData = [];
 
@@ -614,8 +704,8 @@ contract("vRouter", (accounts) => {
         tokenC.address,
         tokenA.address,
         _amountOut,
+        realAmountIn,
         accounts[0],
-        data,
         futureTs
       )
       .encodeABI();

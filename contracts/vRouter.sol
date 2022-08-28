@@ -4,6 +4,7 @@ pragma solidity 0.8.2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./types.sol";
 import "./vPair.sol";
@@ -13,10 +14,12 @@ import "./libraries/vSwapLibrary.sol";
 import "./interfaces/IvRouter.sol";
 import "./interfaces/IvPairFactory.sol";
 import "./interfaces/IvPair.sol";
+import "./interfaces/external/IWETH9.sol";
 
 contract vRouter is IvRouter, Multicall {
     address public override factory;
     address public immutable override owner;
+    address public immutable override WETH9;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "VSWAP:ONLY_OWNER");
@@ -28,8 +31,9 @@ contract vRouter is IvRouter, Multicall {
         _;
     }
 
-    constructor(address _factory) {
+    constructor(address _factory, address _WETH9) {
         owner = msg.sender;
+        WETH9 = _WETH9;
         factory = _factory;
     }
 
@@ -49,32 +53,45 @@ contract vRouter is IvRouter, Multicall {
         return IvPair(getPairAddress(tokenA, tokenB));
     }
 
-    function vFlashSwapCallback(
-        uint256 requiredBackAmount,
-        bytes calldata callbackData
-    ) external override {
-        SwapCallbackData memory data = abi.decode(
-            callbackData,
+    function vFlashSwapCallback(uint256 requiredBackAmount, bytes calldata data)
+        external
+        override
+    {
+        SwapCallbackData memory decodedData = abi.decode(
+            data,
             (SwapCallbackData)
         );
         require(
             msg.sender ==
-                PoolAddress.computeAddress(factory, data.token0, data.token1),
+                PoolAddress.computeAddress(
+                    factory,
+                    decodedData.token0,
+                    decodedData.token1
+                ),
             "VSWAP:INVALID_CALLBACK_POOL"
         );
-
         //validate amount to pay back dont exceeds
         require(
-            requiredBackAmount <= data.tokenInMax,
+            requiredBackAmount <= decodedData.tokenInMax,
             "VSWAP:REQUIRED_AMOUNT_EXCEEDS"
         );
-
-        SafeERC20.safeTransferFrom(
-            IERC20(data.token0),
-            data.payer,
-            msg.sender,
-            requiredBackAmount
-        );
+        // handle payment
+        if (decodedData.token0 == WETH9 && decodedData.ETHValue > 0) {
+            require(
+                decodedData.ETHValue >= requiredBackAmount,
+                "VSWAP:INSUFFICIENT_ETH_INPUT_AMOUNT"
+            );
+            // pay with WETH9
+            IWETH9(WETH9).deposit{value: requiredBackAmount}();
+            IWETH9(WETH9).transfer(msg.sender, requiredBackAmount);
+        } else {
+            SafeERC20.safeTransferFrom(
+                IERC20(decodedData.token0),
+                decodedData.payer,
+                msg.sender,
+                requiredBackAmount
+            );
+        }
     }
 
     function swapToExactNative(
@@ -84,18 +101,29 @@ contract vRouter is IvRouter, Multicall {
         uint256 maxAmountIn,
         address to,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external payable override ensure(deadline) {
+        uint256 ETHValue = address(this).balance;
+        address toAddress = ETHValue > 0 ? address(this) : to;
+
         getPair(tokenA, tokenB).swapNative(
             amountOut,
             tokenB,
-            to,
-            SwapCallbackData({
-                payer: msg.sender,
-                token0: tokenA,
-                token1: tokenB,
-                tokenInMax: maxAmountIn
-            })
+            toAddress,
+            abi.encode(
+                SwapCallbackData({
+                    payer: msg.sender,
+                    token0: tokenA,
+                    token1: tokenB,
+                    tokenInMax: maxAmountIn,
+                    ETHValue: ETHValue
+                })
+            )
         );
+
+        if (ETHValue > 0 && tokenB == WETH9) {
+            IWETH9(WETH9).withdraw(amountOut);
+            payable(to).transfer(amountOut);
+        }
     }
 
     function swapReserveToExactNative(
@@ -103,20 +131,30 @@ contract vRouter is IvRouter, Multicall {
         address tokenB,
         address ikPair,
         uint256 amountOut,
+        uint256 maxAmountIn,
         address to,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external payable override ensure(deadline) {
+        uint256 ETHValue = address(this).balance;
         getPair(tokenA, tokenB).swapReserveToNative(
             amountOut,
             ikPair,
-            to,
-            SwapCallbackData({
-                payer: msg.sender,
-                token0: tokenA,
-                token1: tokenB,
-                tokenInMax: maxAmountIn
-            })
+            ETHValue > 0 ? address(this) : to,
+            abi.encode(
+                SwapCallbackData({
+                    payer: msg.sender,
+                    token0: tokenA,
+                    token1: tokenB,
+                    tokenInMax: maxAmountIn,
+                    ETHValue: ETHValue
+                })
+            )
         );
+
+        if (ETHValue > 0 && tokenB == WETH9) {
+            IWETH9(WETH9).withdraw(amountOut);
+            payable(to).transfer(amountOut);
+        }
     }
 
     function _addLiquidity(
