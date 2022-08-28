@@ -70,7 +70,7 @@ contract vRouter is IvRouter, Multicall {
         );
 
         SafeERC20.safeTransferFrom(
-            IERC20(data.tokenIn),
+            IERC20(data.token0),
             data.payer,
             msg.sender,
             requiredBackAmount
@@ -81,12 +81,21 @@ contract vRouter is IvRouter, Multicall {
         address tokenA,
         address tokenB,
         uint256 amountOut,
+        uint256 maxAmountIn,
         address to,
-        bytes calldata data,
         uint256 deadline
     ) external override ensure(deadline) {
-        require(data.length > 0, "VSWAP:INVALID_REQUEST");
-        getPair(tokenA, tokenB).swapNative(amountOut, tokenB, to, data);
+        getPair(tokenA, tokenB).swapNative(
+            amountOut,
+            tokenB,
+            to,
+            SwapCallbackData({
+                payer: msg.sender,
+                token0: tokenA,
+                token1: tokenB,
+                tokenInMax: maxAmountIn
+            })
+        );
     }
 
     function swapReserveToExactNative(
@@ -95,16 +104,18 @@ contract vRouter is IvRouter, Multicall {
         address ikPair,
         uint256 amountOut,
         address to,
-        bytes calldata data,
         uint256 deadline
     ) external override ensure(deadline) {
-        require(data.length > 0, "VSWAP:INVALID_REQUEST");
-
         getPair(tokenA, tokenB).swapReserveToNative(
             amountOut,
             ikPair,
             to,
-            data
+            SwapCallbackData({
+                payer: msg.sender,
+                token0: tokenA,
+                token1: tokenB,
+                tokenInMax: maxAmountIn
+            })
         );
     }
 
