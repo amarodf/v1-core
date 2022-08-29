@@ -91,7 +91,6 @@ contract vRouter is IvRouter, Multicall {
 
             //send any ETH leftovers to caller
             payable(decodedData.caller).transfer(address(this).balance);
-
         } else {
             SafeERC20.safeTransferFrom(
                 IERC20(decodedData.token0),
@@ -100,6 +99,11 @@ contract vRouter is IvRouter, Multicall {
                 requiredBackAmount
             );
         }
+    }
+
+    function unwapAndSendETH(address to, uint256 amount) internal {
+        IWETH9(WETH9).withdraw(amount);
+        payable(to).transfer(amount);
     }
 
     function swapToExactNative(
@@ -128,8 +132,7 @@ contract vRouter is IvRouter, Multicall {
         );
 
         if (tokenOut == WETH9) {
-            IWETH9(WETH9).withdraw(amountOut);
-            payable(to).transfer(amountOut);
+            unwapAndSendETH(to, amountOut);
         }
     }
 
@@ -158,8 +161,7 @@ contract vRouter is IvRouter, Multicall {
         );
 
         if (tokenOut == WETH9) {
-            IWETH9(WETH9).withdraw(amountOut);
-            payable(to).transfer(amountOut);
+            unwapAndSendETH(to, amountOut);
         }
     }
 
