@@ -37,6 +37,10 @@ contract vRouter is IvRouter, Multicall {
         factory = _factory;
     }
 
+    receive() external payable {
+        require(msg.sender == WETH9, "Not WETH9");
+    }
+
     function getPairAddress(address tokenA, address tokenB)
         internal
         view
@@ -81,13 +85,17 @@ contract vRouter is IvRouter, Multicall {
                 decodedData.ETHValue >= requiredBackAmount,
                 "VSWAP:INSUFFICIENT_ETH_INPUT_AMOUNT"
             );
-            // pay with WETH9
+            // pay back with WETH9
             IWETH9(WETH9).deposit{value: requiredBackAmount}();
             IWETH9(WETH9).transfer(msg.sender, requiredBackAmount);
+
+            //send any ETH leftovers to caller
+            payable(decodedData.caller).transfer(address(this).balance);
+
         } else {
             SafeERC20.safeTransferFrom(
                 IERC20(decodedData.token0),
-                decodedData.payer,
+                decodedData.caller,
                 msg.sender,
                 requiredBackAmount
             );
@@ -95,63 +103,61 @@ contract vRouter is IvRouter, Multicall {
     }
 
     function swapToExactNative(
-        address tokenA,
-        address tokenB,
+        address tokenIn,
+        address tokenOut,
         uint256 amountOut,
         uint256 maxAmountIn,
         address to,
         uint256 deadline
     ) external payable override ensure(deadline) {
         uint256 ETHValue = address(this).balance;
-        address toAddress = ETHValue > 0 ? address(this) : to;
 
-        getPair(tokenA, tokenB).swapNative(
+        getPair(tokenIn, tokenOut).swapNative(
             amountOut,
-            tokenB,
-            toAddress,
+            tokenOut,
+            tokenOut == WETH9 ? address(this) : to,
             abi.encode(
                 SwapCallbackData({
-                    payer: msg.sender,
-                    token0: tokenA,
-                    token1: tokenB,
+                    caller: msg.sender,
+                    token0: tokenIn,
+                    token1: tokenOut,
                     tokenInMax: maxAmountIn,
                     ETHValue: ETHValue
                 })
             )
         );
 
-        if (ETHValue > 0 && tokenB == WETH9) {
+        if (tokenOut == WETH9) {
             IWETH9(WETH9).withdraw(amountOut);
             payable(to).transfer(amountOut);
         }
     }
 
     function swapReserveToExactNative(
-        address tokenA,
-        address tokenB,
+        address tokenIn,
+        address tokenOut,
         address ikPair,
         uint256 amountOut,
         uint256 maxAmountIn,
         address to,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 ETHValue = address(this).balance;
-        getPair(tokenA, tokenB).swapReserveToNative(
+        getPair(tokenIn, tokenOut).swapReserveToNative(
             amountOut,
             ikPair,
-            ETHValue > 0 ? address(this) : to,
+            tokenOut == WETH9 ? address(this) : to,
             abi.encode(
                 SwapCallbackData({
-                    payer: msg.sender,
-                    token0: tokenA,
-                    token1: tokenB,
+                    caller: msg.sender,
+                    token0: tokenIn,
+                    token1: tokenOut,
                     tokenInMax: maxAmountIn,
-                    ETHValue: ETHValue
+                    ETHValue: address(this).balance
                 })
             )
         );
 
-        if (ETHValue > 0 && tokenB == WETH9) {
+        if (tokenOut == WETH9) {
             IWETH9(WETH9).withdraw(amountOut);
             payable(to).transfer(amountOut);
         }

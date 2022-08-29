@@ -23,7 +23,7 @@ struct ExchangeReserveCallbackParams {
 }
 
 struct SwapCallbackData {
-    address payer;
+    address caller;
     address token0;
     address token1;
     uint256 tokenInMax;
