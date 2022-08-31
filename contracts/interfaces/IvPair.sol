@@ -12,6 +12,25 @@ interface IvPair {
         address indexed to
     );
 
+    event Swap(
+        address indexed sender,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        address indexed to
+    );
+
+    event SwapReserve(
+        address indexed sender,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        address ikPool,
+        address indexed to
+    );
+
     event WhitelistChanged(address[] tokens);
 
     event Sync(uint256 balance0, uint256 balance1);

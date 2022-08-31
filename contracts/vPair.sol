@@ -161,11 +161,23 @@ contract vPair is IvPair, vSwapERC20 {
 
         require(_amountIn > 0 && _amountIn >= requiredAmountIn, "IIA");
 
-        bool _isTokenIn0 = _tokenIn == token0;
+        {
+            //avoid stack too deep
+            bool _isTokenIn0 = _tokenIn == token0;
 
-        _update(
-            _isTokenIn0 ? _reserve0 + _amountIn : _reserve1 - amountOut,
-            _isTokenIn0 ? _reserve1 - amountOut : _reserve0 + _amountIn
+            _update(
+                _isTokenIn0 ? _reserve0 + _amountIn : _reserve1 - amountOut,
+                _isTokenIn0 ? _reserve1 - amountOut : _reserve0 + _amountIn
+            );
+        }
+
+        emit Swap(
+            msg.sender,
+            _tokenIn,
+            tokenOut,
+            requiredAmountIn,
+            amountOut,
+            to
         );
     }
 
@@ -254,6 +266,16 @@ contract vPair is IvPair, vSwapERC20 {
         );
 
         emit ReserveSync(vPool.token1, reserves[vPool.token1]);
+
+        emit SwapReserve(
+            msg.sender,
+            vPool.token0,
+            vPool.token1,
+            requiredAmountIn,
+            amountOut,
+            ikPair,
+            to
+        );
     }
 
     function swapReserveToNative(
@@ -340,6 +362,16 @@ contract vPair is IvPair, vSwapERC20 {
         );
 
         emit ReserveSync(vPool.token0, reserves[vPool.token0]);
+
+        emit SwapReserve(
+            msg.sender,
+            vPool.token0,
+            vPool.token1,
+            requiredAmountIn,
+            amountOut,
+            ikPair,
+            to
+        );
     }
 
     function calculateReserveRatio()
