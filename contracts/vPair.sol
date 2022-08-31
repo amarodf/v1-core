@@ -265,8 +265,6 @@ contract vPair is IvPair, vSwapERC20 {
             IERC20(token1).balanceOf(address(this))
         );
 
-        emit ReserveSync(vPool.token1, reserves[vPool.token1]);
-
         emit SwapReserve(
             msg.sender,
             vPool.token0,
@@ -360,8 +358,6 @@ contract vPair is IvPair, vSwapERC20 {
             IERC20(token0).balanceOf(address(this)),
             IERC20(token1).balanceOf(address(this))
         );
-
-        emit ReserveSync(vPool.token0, reserves[vPool.token0]);
 
         emit SwapReserve(
             msg.sender,
