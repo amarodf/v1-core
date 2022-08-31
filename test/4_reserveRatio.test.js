@@ -3,6 +3,7 @@ const vPair = artifacts.require("vPair");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
+const { expect } = require("chai");
 const { getEncodedSwapData } = require("./utils");
 
 contract("ReserveRatio", (accounts) => {
@@ -712,13 +713,12 @@ contract("ReserveRatio", (accounts) => {
 
     let reverted = false;
     try {
-      await vRouterInstance.swap(
-        [jkPair],
-        [amountIn],
-        [amountOut],
-        [ikPair],
-        tokenD.address,
+      await vRouterInstance.swapReserveToExactNative(
         tokenA.address,
+        tokenB.address,
+        ikPair,
+        amountOut,
+        amountIn,
         accounts[0],
         futureTs
       );
@@ -752,10 +752,6 @@ contract("ReserveRatio", (accounts) => {
     let amountBDesired = fromWeiToNumber(reserves["1"]) * 0.29;
 
     let amountCInBalance = await tokenC.balanceOf(pool.address);
-    let amountCInReserve = await pool.reserves(tokenC.address);
-    let amountCInReserveBaseValue = await pool.reservesBaseValue(
-      tokenC.address
-    );
 
     const futureTs = await getFutureBlockTimestamp();
     await vRouterInstance.removeLiquidity(
@@ -769,9 +765,9 @@ contract("ReserveRatio", (accounts) => {
     );
 
     let amountCInBalanceAfter = await tokenC.balanceOf(pool.address);
-    let amountCInReserveAfter = await pool.reserves(tokenC.address);
-    let amountCInReserveBaseValueAfter = await pool.reservesBaseValue(
-      tokenC.address
+
+    expect(
+      1 / (amountCInBalance / amountCInBalanceAfter).toFixed(3) == "0.699"
     );
   });
 });
