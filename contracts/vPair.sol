@@ -208,6 +208,7 @@ contract vPair is IvPair, vSwapERC20 {
             "IIKP"
         );
 
+        require(amountOut <= vPool.reserve1, "AOE");
         require(whitelistAllowance[vPool.token1], "TNW");
         require(vPool.token0 == token0 || vPool.token0 == token1, "NNT");
 
