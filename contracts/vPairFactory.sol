@@ -13,7 +13,7 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
     address public immutable override admin;
     address public override exchangeReserves;
 
-    PairCreationParams public override poolCreationParameters;
+    PoolCreationDefaults public override poolCreationDefaults;
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "OA");
@@ -49,7 +49,7 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
 
         require(pairs[token0][token1] == address(0), "VSWAP: PAIR_EXISTS");
 
-        poolCreationParameters = PairCreationParams({
+        poolCreationDefaults = PoolCreationDefaults({
             factory: address(this),
             token0: token0,
             token1: token1,
@@ -62,7 +62,7 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
         bytes32 _salt = PoolAddress.getSalt(token0, token1);
         pair = address(new vPair{salt: _salt}());
 
-        delete poolCreationParameters;
+        delete poolCreationDefaults;
 
         pairs[token0][token1] = pair;
         pairs[token1][token0] = pair;

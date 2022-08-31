@@ -68,20 +68,6 @@ contract("Base", (accounts) => {
     assert(pairAddress > 0);
   });
 
-  it("Should compute tokenA / tokenB pool address", async () => {
-    let poolAddress = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-    let calculated = await PoolAddressInstance.computeAddress(
-      vPairFactoryInstance.address,
-      tokenA.address,
-      tokenB.address
-    );
-
-    assert.equal(poolAddress, calculated);
-  });
-
   it("Should create pool vRouter", async () => {
     const futureTs = await getFutureBlockTimestamp();
 

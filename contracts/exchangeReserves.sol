@@ -13,10 +13,12 @@ contract exchangeReserves is IvFlashSwapCallback {
         factory = _factory;
     }
 
-    function vFlashSwapCallback(uint256 requiredBackAmount, bytes calldata data)
-        external
-        override
-    {
+    function vFlashSwapCallback(
+        address tokenIn,
+        address tokenOut,
+        uint256 requiredBackAmount,
+        bytes calldata data
+    ) external override {
         ExchangeReserveCallbackParams memory decodedData = abi.decode(
             data,
             (ExchangeReserveCallbackParams)

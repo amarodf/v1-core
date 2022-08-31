@@ -5,7 +5,7 @@ import "./IvFlashSwapCallback.sol";
 interface IvRouter is IvFlashSwapCallback {
     event FactoryChanged(address newFactoryAddress);
 
-    function changeFactory(address factory) external;
+    function changeFactory(address _factory) external;
 
     function factory() external view returns (address);
 

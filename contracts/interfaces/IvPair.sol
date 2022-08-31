@@ -79,6 +79,15 @@ interface IvPair {
 
     function getReserves() external view returns (uint256, uint256);
 
+    function getLastReserves()
+        external
+        view
+        returns (
+            uint256 _reserve0,
+            uint256 _reserve1,
+            uint256 _blockNumber
+        );
+
     function getTokens() external view returns (address, address);
 
     function reservesBaseValue(address reserveAddress)

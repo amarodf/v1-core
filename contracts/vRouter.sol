@@ -57,30 +57,36 @@ contract vRouter is IvRouter, Multicall {
         return IvPair(getPairAddress(tokenA, tokenB));
     }
 
-    function vFlashSwapCallback(uint256 requiredBackAmount, bytes calldata data)
-        external
-        override
-    {
+    function vFlashSwapCallback(
+        address tokenIn,
+        address tokenOut,
+        uint256 requiredBackAmount,
+        bytes calldata data
+    ) external override {
         SwapCallbackData memory decodedData = abi.decode(
             data,
             (SwapCallbackData)
         );
-        require(
-            msg.sender ==
-                PoolAddress.computeAddress(
-                    factory,
-                    decodedData.token0,
-                    decodedData.token1
-                ),
-            "VSWAP:INVALID_CALLBACK_POOL"
-        );
+
+        if (decodedData.jkPool > address(0))
+            require(
+                msg.sender == decodedData.jkPool,
+                "VSWAP:INVALID_CALLBACK_VPOOL"
+            );
+        else
+            require(
+                msg.sender ==
+                    PoolAddress.computeAddress(factory, tokenIn, tokenOut),
+                "VSWAP:INVALID_CALLBACK_POOL"
+            );
+
         //validate amount to pay back dont exceeds
         require(
             requiredBackAmount <= decodedData.tokenInMax,
             "VSWAP:REQUIRED_AMOUNT_EXCEEDS"
         );
         // handle payment
-        if (decodedData.token0 == WETH9 && decodedData.ETHValue > 0) {
+        if (tokenIn == WETH9 && decodedData.ETHValue > 0) {
             require(
                 decodedData.ETHValue >= requiredBackAmount,
                 "VSWAP:INSUFFICIENT_ETH_INPUT_AMOUNT"
@@ -93,7 +99,7 @@ contract vRouter is IvRouter, Multicall {
             payable(decodedData.caller).transfer(address(this).balance);
         } else {
             SafeERC20.safeTransferFrom(
-                IERC20(decodedData.token0),
+                IERC20(tokenIn),
                 decodedData.caller,
                 msg.sender,
                 requiredBackAmount
@@ -101,7 +107,7 @@ contract vRouter is IvRouter, Multicall {
         }
     }
 
-    function unwapAndSendETH(address to, uint256 amount) internal {
+    function unwrapTransferETH(address to, uint256 amount) internal {
         IWETH9(WETH9).withdraw(amount);
         payable(to).transfer(amount);
     }
@@ -114,8 +120,6 @@ contract vRouter is IvRouter, Multicall {
         address to,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 ETHValue = address(this).balance;
-
         getPair(tokenIn, tokenOut).swapNative(
             amountOut,
             tokenOut,
@@ -123,45 +127,45 @@ contract vRouter is IvRouter, Multicall {
             abi.encode(
                 SwapCallbackData({
                     caller: msg.sender,
-                    token0: tokenIn,
-                    token1: tokenOut,
                     tokenInMax: maxAmountIn,
-                    ETHValue: ETHValue
+                    ETHValue: address(this).balance,
+                    jkPool: address(0)
                 })
             )
         );
 
         if (tokenOut == WETH9) {
-            unwapAndSendETH(to, amountOut);
+            unwrapTransferETH(to, amountOut);
         }
     }
 
     function swapReserveToExactNative(
-        address tokenIn,
         address tokenOut,
+        address commonToken,
         address ikPair,
         uint256 amountOut,
         uint256 maxAmountIn,
         address to,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        getPair(tokenIn, tokenOut).swapReserveToNative(
+        address jkAddress = getPairAddress(tokenOut, commonToken);
+
+        IvPair(jkAddress).swapReserveToNative(
             amountOut,
             ikPair,
             tokenOut == WETH9 ? address(this) : to,
             abi.encode(
                 SwapCallbackData({
                     caller: msg.sender,
-                    token0: tokenIn,
-                    token1: tokenOut,
                     tokenInMax: maxAmountIn,
-                    ETHValue: address(this).balance
+                    ETHValue: address(this).balance,
+                    jkPool: jkAddress
                 })
             )
         );
 
         if (tokenOut == WETH9) {
-            unwapAndSendETH(to, amountOut);
+            unwrapTransferETH(to, amountOut);
         }
     }
 

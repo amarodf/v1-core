@@ -3,6 +3,8 @@ const vPair = artifacts.require("vPair");
 const WETH9 = artifacts.require("WETH9");
 const vPairFactory = artifacts.require("vPairFactory");
 const vSwapLibrary = artifacts.require("vSwapLibrary");
+const { isValidProvider } = require("@truffle/hdwallet-provider");
+const { expect } = require("chai");
 const { catchRevert } = require("./exceptions");
 const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const { getEncodedSwapData } = require("./utils");
@@ -382,13 +384,6 @@ contract("vRouter", (accounts) => {
 
     const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
     const ethBalanceBefore = await web3.eth.getBalance(accounts[0]);
-    const poolETHBalance = await web3.eth.getBalance(vRouterInstance.address);
-
-    const myWETHBalance = await WETHInstance.balanceOf(accounts[0]);
-    const poolWETHBalance = await WETHInstance.balanceOf(ethAPool);
-    const routerWETHBalance = await WETHInstance.balanceOf(
-      vRouterInstance.address
-    );
 
     let amountOut = web3.utils.toWei("1", "ether");
 
@@ -418,29 +413,6 @@ contract("vRouter", (accounts) => {
 
     const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
     const ethBalanceAfter = await web3.eth.getBalance(accounts[0]);
-    const poolETHBalanceAfter = await web3.eth.getBalance(
-      vRouterInstance.address
-    );
-    const myWETHBalanceAfter = await WETHInstance.balanceOf(accounts[0]);
-    const poolWETHBalanceAfter = await WETHInstance.balanceOf(ethAPool);
-    const routerWETHBalanceAfter = await WETHInstance.balanceOf(
-      vRouterInstance.address
-    );
-
-    console.log("routerETHBalance " + poolETHBalance);
-    console.log("routerETHBalanceAfter " + poolETHBalanceAfter);
-
-    console.log("myWETHBalance " + myWETHBalance);
-    console.log("myWETHBalanceAfter " + myWETHBalanceAfter);
-
-    console.log("poolWETHBalance " + poolWETHBalance);
-    console.log("poolWETHBalanceAfter " + poolWETHBalanceAfter);
-
-    console.log("routerWETHBalance " + routerWETHBalance);
-    console.log("routerWETHBalanceAfter " + routerWETHBalanceAfter);
-
-    console.log("ethBalanceBefore " + ethBalanceBefore);
-    console.log("ethBalanceAfter " + ethBalanceAfter);
 
     expect(fromWeiToNumber(ethBalanceAfter)).to.be.lessThan(
       fromWeiToNumber(ethBalanceBefore)
@@ -459,16 +431,6 @@ contract("vRouter", (accounts) => {
 
     const tokenABalanceBefore = await tokenA.balanceOf(accounts[0]);
     const ethBalanceBefore = await web3.eth.getBalance(accounts[0]);
-    const poolETHBalance = await web3.eth.getBalance(vRouterInstance.address);
-
-    const myWETHBalance = await WETHInstance.balanceOf(accounts[0]);
-    const poolWETHBalance = await WETHInstance.balanceOf(ethAPool);
-    const routerWETHBalance = await WETHInstance.balanceOf(
-      vRouterInstance.address
-    );
-
-    const wethBalance = await web3.eth.getBalance(WETHInstance.address);
-    console.log("wethBalance: " + wethBalance);
 
     let amountOut = web3.utils.toWei("2", "ether");
 
@@ -477,8 +439,6 @@ contract("vRouter", (accounts) => {
       WETHInstance.address,
       amountOut
     );
-
-    console.log("amountIn: " + amountIn);
 
     const futureTs = await getFutureBlockTimestamp();
 
@@ -499,29 +459,6 @@ contract("vRouter", (accounts) => {
 
     const tokenABalanceAfter = await tokenA.balanceOf(accounts[0]);
     const ethBalanceAfter = await web3.eth.getBalance(accounts[0]);
-    const poolETHBalanceAfter = await web3.eth.getBalance(
-      vRouterInstance.address
-    );
-    const myWETHBalanceAfter = await WETHInstance.balanceOf(accounts[0]);
-    const poolWETHBalanceAfter = await WETHInstance.balanceOf(ethAPool);
-    const routerWETHBalanceAfter = await WETHInstance.balanceOf(
-      vRouterInstance.address
-    );
-
-    console.log("routerETHBalance " + poolETHBalance);
-    console.log("routerETHBalanceAfter " + poolETHBalanceAfter);
-
-    console.log("myWETHBalance " + myWETHBalance);
-    console.log("myWETHBalanceAfter " + myWETHBalanceAfter);
-
-    console.log("poolWETHBalance " + poolWETHBalance);
-    console.log("poolWETHBalanceAfter " + poolWETHBalanceAfter);
-
-    console.log("routerWETHBalance " + routerWETHBalance);
-    console.log("routerWETHBalanceAfter " + routerWETHBalanceAfter);
-
-    console.log("ethBalanceBefore " + ethBalanceBefore);
-    console.log("ethBalanceAfter " + ethBalanceAfter);
 
     expect(fromWeiToNumber(ethBalanceBefore)).to.be.lessThan(
       fromWeiToNumber(ethBalanceAfter)
@@ -644,6 +581,11 @@ contract("vRouter", (accounts) => {
       tokenA.address
     );
 
+    const acPair = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenC.address
+    );
+
     let amountOut = web3.utils.toWei("100", "ether");
 
     let amountIn = await vRouterInstance.getVirtualAmountIn(
@@ -662,6 +604,9 @@ contract("vRouter", (accounts) => {
 
     const futureTs = await getFutureBlockTimestamp();
 
+    let jkPAirCBalance = await tokenC.balanceOf(jkPair);
+    let cBalance = await tokenC.balanceOf(accounts[0]);
+
     await vRouterInstance.swapReserveToExactNative(
       tokenA.address,
       tokenB.address,
@@ -670,6 +615,16 @@ contract("vRouter", (accounts) => {
       amountIn,
       accounts[0],
       futureTs
+    );
+
+    let cBalanceAfter = await tokenC.balanceOf(accounts[0]);
+    let jkPAirCBalanceAfter = await tokenC.balanceOf(jkPair);
+
+    expect(fromWeiToNumber(jkPAirCBalanceAfter)).to.be.above(
+      fromWeiToNumber(jkPAirCBalance)
+    );
+    expect(fromWeiToNumber(cBalance)).to.be.above(
+      fromWeiToNumber(cBalanceAfter)
     );
   });
 
@@ -700,22 +655,28 @@ contract("vRouter", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenA.address,
-      tokenB.address,
-      tokenC.address
-    );
+    let jkPAirABalance = await tokenA.balanceOf(jkPair);
+    let aBalance = await tokenA.balanceOf(accounts[0]);
 
     const futureTs = await getFutureBlockTimestamp();
     await vRouterInstance.swapReserveToExactNative(
-      tokenB.address,
       tokenC.address,
+      tokenB.address,
       ikPair,
       amountInTokenC,
       amountIn,
       accounts[0],
       futureTs
+    );
+
+    let jkPAirABalanceAfter = await tokenA.balanceOf(jkPair);
+    let aBalanceAfter = await tokenA.balanceOf(accounts[0]);
+
+    expect(fromWeiToNumber(jkPAirABalanceAfter)).to.be.above(
+      fromWeiToNumber(jkPAirABalance)
+    );
+    expect(fromWeiToNumber(aBalance)).to.be.above(
+      fromWeiToNumber(aBalanceAfter)
     );
   });
 
@@ -777,22 +738,14 @@ contract("vRouter", (accounts) => {
       "ether"
     );
 
-    let data2 = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      virtualIn
-    );
-
     str = await vRouterInstance.contract.methods
       .swapReserveToExactNative(
         tokenA.address,
         tokenB.address,
         ikPair,
         _amountOut,
+        virtualIn,
         accounts[0],
-        data2,
         futureTs
       )
       .encodeABI();
@@ -800,43 +753,6 @@ contract("vRouter", (accounts) => {
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
-  });
-
-  it("Should revert on swap A to C on pool A/C with insuficient input amount", async () => {
-    const poolAddress = await vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenC.address
-    );
-
-    let pools = [poolAddress];
-    let amountsIn = web3.utils.toWei("10", "ether");
-
-    const amountOut = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenC.address,
-      amountsIn
-    );
-
-    amountsIn = web3.utils.toWei("8", "ether");
-
-    const futureTs = await getFutureBlockTimestamp();
-    let reverted = false;
-    try {
-      await vRouterInstance.swap(
-        pools,
-        [amountsIn],
-        [amountOut],
-        ["0x0000000000000000000000000000000000000000"],
-        tokenA.address,
-        tokenC.address,
-        accounts[0],
-        futureTs
-      );
-    } catch {
-      reverted = true;
-    }
-
-    assert(reverted);
   });
 
   it("Should remove 1/4 liquidity", async () => {
@@ -918,8 +834,8 @@ contract("vRouter", (accounts) => {
     let amountADesired = web3.utils.toWei("1", "ether");
 
     const amountBDesired = await vRouterInstance.quote(
-      tokenA.address,
       tokenB.address,
+      tokenA.address,
       amountADesired
     );
 
@@ -938,6 +854,7 @@ contract("vRouter", (accounts) => {
     let lpBalance = await pool.balanceOf(accounts[0]);
 
     let poolRR = await pool.calculateReserveRatio();
+
 
     await vRouterInstance.addLiquidity(
       tokenA.address,
@@ -1115,8 +1032,8 @@ contract("vRouter", (accounts) => {
     let amountADesired = web3.utils.toWei("100", "ether");
 
     const amountBDesired = await vRouterInstance.quote(
-      tokenA.address,
       tokenB.address,
+      tokenA.address,
       amountADesired
     );
 

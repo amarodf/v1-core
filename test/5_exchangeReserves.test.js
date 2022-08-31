@@ -242,14 +242,6 @@ contract("exchangeReserves", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenC.address,
-      tokenA.address,
-      tokenB.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -257,8 +249,8 @@ contract("exchangeReserves", (accounts) => {
       tokenB.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 
@@ -304,14 +296,6 @@ contract("exchangeReserves", (accounts) => {
       "ether"
     );
 
-    let data = getEncodedSwapData(
-      accounts[0],
-      tokenA.address,
-      tokenB.address,
-      tokenC.address,
-      amountIn
-    );
-
     const futureTs = await getFutureBlockTimestamp();
 
     await vRouterInstance.swapReserveToExactNative(
@@ -319,8 +303,8 @@ contract("exchangeReserves", (accounts) => {
       tokenC.address,
       ikPair,
       amountOut,
+      amountIn,
       accounts[0],
-      data,
       futureTs
     );
 

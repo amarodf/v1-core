@@ -30,6 +30,10 @@ contract vPair is IvPair, vSwapERC20 {
     uint256 public override reserve0;
     uint256 public override reserve1;
 
+    uint256 private _lastBlockUpdated;
+    uint256 private _lastReserve0;
+    uint256 private _lastReserve1;
+
     uint256 public max_reserve_ratio;
 
     address[] public whitelist;
@@ -70,14 +74,30 @@ contract vPair is IvPair, vSwapERC20 {
             vFee,
             max_whitelist_count,
             max_reserve_ratio
-        ) = IvSwapPoolDeployer(msg.sender).poolCreationParameters();
+        ) = IvSwapPoolDeployer(msg.sender).poolCreationDefaults();
     }
 
     function _update(uint256 balance0, uint256 balance1) internal {
-        reserve0 = balance0;
-        reserve1 = balance1;
+        (reserve0, reserve1) = (balance0, balance1);
+        if (block.number > _lastBlockUpdated) {
+            (_lastReserve0, _lastReserve1) = (reserve0, reserve1);
+            _lastBlockUpdated = block.number;
+        }
 
         emit Sync(balance0, balance1);
+    }
+
+    function getLastReserves()
+        external
+        view
+        override
+        returns (
+            uint256 _reserve0,
+            uint256 _reserve1,
+            uint256 _blockNumber
+        )
+    {
+        return (_lastReserve0, _lastReserve1, _lastBlockUpdated);
     }
 
     function getReserves()
@@ -119,6 +139,8 @@ contract vPair is IvPair, vSwapERC20 {
             reserve1
         );
 
+        require(amountOut <= _reserve1, "AOE");
+
         uint256 requiredAmountIn = vSwapLibrary.getAmountIn(
             amountOut,
             _reserve0,
@@ -128,6 +150,8 @@ contract vPair is IvPair, vSwapERC20 {
 
         if (data.length > 0) {
             IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
+                _tokenIn,
+                tokenOut,
                 requiredAmountIn,
                 data
             );
@@ -186,6 +210,8 @@ contract vPair is IvPair, vSwapERC20 {
 
         if (data.length > 0)
             IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
+                vPool.token0,
+                vPool.token1,
                 requiredAmountIn,
                 data
             );
@@ -255,6 +281,7 @@ contract vPair is IvPair, vSwapERC20 {
             "IIKP"
         );
 
+        require(amountOut <= vPool.reserve1, "AOE");
         require(whitelistAllowance[vPool.token0], "TNW");
         require(vPool.token1 == token0 || vPool.token1 == token1, "NNT");
 
@@ -269,6 +296,8 @@ contract vPair is IvPair, vSwapERC20 {
 
         if (data.length > 0)
             IvFlashSwapCallback(msg.sender).vFlashSwapCallback(
+                vPool.token0,
+                vPool.token1,
                 requiredAmountIn,
                 data
             );
@@ -280,7 +309,6 @@ contract vPair is IvPair, vSwapERC20 {
         require(amountIn > 0 && amountIn >= requiredAmountIn, "IIA");
 
         //update reserve balance in the equivalent of token0 value
-
         uint256 _reserveBaseValue = reserves[vPool.token0] + amountIn;
 
         //re-calculate price of reserve asset in token0 for the whole pool blance
@@ -444,7 +472,7 @@ contract vPair is IvPair, vSwapERC20 {
     }
 
     function setFactory(address _factory) external onlyFactoryAdmin {
-        require(_factory > address(0) && _factory == factory, "IFA");
+        require(_factory > address(0) && _factory != factory, "IFA");
         factory = _factory;
 
         emit FactoryChanged(_factory);

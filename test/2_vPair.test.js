@@ -186,6 +186,19 @@ contract("vPair", (accounts) => {
   //   await vFlashSwapExample.testFlashswap();
   // });
 
+  it("Should get last pool reserves", async () => {
+    let poolAddress = await vPairFactoryInstance.getPair(
+      tokenA.address,
+      tokenB.address
+    );
+
+    const vPairInstance = await vPair.at(poolAddress);
+    const reserves = await vPairInstance.getReserves();
+    const lastReserves = await vPairInstance.getLastReserves();
+
+    expect(reserves._reserve0.toString()).to.equal(lastReserves._reserve0.toString());
+  });
+
   it("Should swap native A to B on pool A/B", async () => {
     const aBalancePoolBefore = await tokenB.balanceOf(vPairInstance.address);
     const bBalancePoolBefore = await tokenA.balanceOf(vPairInstance.address);

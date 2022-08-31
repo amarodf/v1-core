@@ -119,7 +119,9 @@ library vSwapLibrary {
 
         require(vPoolTokens.ik1 == vPoolTokens.jk1, "IOP");
 
-        (uint256 ikReserve0, uint256 ikReserve1) = IvPair(ikPair).getReserves();
+        (uint256 ikReserve0, uint256 ikReserve1, ) = IvPair(ikPair)
+            .getLastReserves();
+
         (uint256 _reserve0, uint256 _reserve1) = (jkReserve0, jkReserve1); //gas saving
 
         vPool = calculateVPool(
