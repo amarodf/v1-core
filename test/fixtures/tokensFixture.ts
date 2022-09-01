@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 import {
   ERC20PresetFixedSupply__factory,
   VPairFactory__factory,
-  VPair__factory,
   VRouter__factory,
-} from "../typechain-types/index";
+  WETH9__factory,
+} from "../../typechain-types/index";
 
 // We define a fixture to reuse the same setup in every test.
 // We use loadFixture to run this setup once, snapshot that state,
@@ -72,11 +72,17 @@ export async function tokensFixture() {
     owner
   ).deploy();
 
+  const WETH9Instance = await new WETH9__factory(
+    WETH9__factory.createInterface(),
+    WETH9__factory.bytecode,
+    owner
+  ).deploy();
+
   const vRouterInstance = await new VRouter__factory(
     VRouter__factory.createInterface(),
     VRouter__factory.bytecode,
     owner
-  ).deploy(vPairFactoryInstance.address);
+  ).deploy(vPairFactoryInstance.address, WETH9Instance.address);
 
   await tokenA.approve(vRouterInstance.address, issueAmount);
   await tokenB.approve(vRouterInstance.address, issueAmount);
