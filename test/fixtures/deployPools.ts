@@ -5,7 +5,9 @@ import {
   VPairFactory__factory,
   VPair__factory,
   VRouter__factory,
-} from "../typechain-types/index";
+  ExchangeReserves__factory,
+  WETH9__factory,
+} from "../../typechain-types/index";
 
 // We define a fixture to reuse the same setup in every test.
 // We use loadFixture to run this setup once, snapshot that state,
@@ -66,17 +68,29 @@ export async function deployPools() {
     owner.address
   );
 
+  const WETH9Instance = await new WETH9__factory(
+    WETH9__factory.createInterface(),
+    WETH9__factory.bytecode,
+    owner
+  ).deploy();
+
   const vPairFactoryInstance = await new VPairFactory__factory(
     VPairFactory__factory.createInterface(),
     VPairFactory__factory.bytecode,
     owner
   ).deploy();
 
+  const exchageReserveInstance = await new ExchangeReserves__factory(
+    ExchangeReserves__factory.createInterface(),
+    ExchangeReserves__factory.bytecode,
+    owner
+  ).deploy(vPairFactoryInstance.address);
+
   const vRouterInstance = await new VRouter__factory(
     VRouter__factory.createInterface(),
     VRouter__factory.bytecode,
     owner
-  ).deploy(vPairFactoryInstance.address);
+  ).deploy(vPairFactoryInstance.address, WETH9Instance.address);
 
   await tokenA.approve(vRouterInstance.address, issueAmount);
   await tokenB.approve(vRouterInstance.address, issueAmount);
@@ -256,5 +270,6 @@ export async function deployPools() {
       account10,
     ],
     vPairFactoryInstance,
+    exchageReserveInstance,
   };
 }
