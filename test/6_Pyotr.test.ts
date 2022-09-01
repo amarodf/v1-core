@@ -297,8 +297,9 @@ describe("Pyotr tests", () => {
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
+  })
 
-/*
+
     it("Test 6: Complex Swap D --> B, should fail as D is not in whitelist", async() => {
       const tokenA = fixture.tokenA;
       const tokenB = fixture.tokenB;
@@ -326,7 +327,7 @@ describe("Pyotr tests", () => {
         tokenD.address,
         tokenB.address,
         tokenD.address,
-        amountInAD
+        amountInBD
       );
   
       const futureTs = await utils.getFutureBlockTimestamp();
@@ -338,7 +339,7 @@ describe("Pyotr tests", () => {
       ).encodeFunctionData("swapToExactNative", [
         tokenB.address,
         tokenD.address,
-        amountOutAD,
+        amountOutBD,
         owner.address,
         data,
         futureTs,
@@ -346,13 +347,13 @@ describe("Pyotr tests", () => {
   
       multiData.push(str);
   
-      console.log(Number(ethers.utils.formatEther(amountOutAD)))
+      console.log(Number(ethers.utils.formatEther(amountOutBD)))
   
   
-      //let amountOutBD = await vRouterInstance.getVirtualAmountOut(
-        bdPool.address,
+      let amountOutAB = await vRouterInstance.getVirtualAmountOut(
         abPool.address,
-        amountInBD
+        adPool.address,
+        amountInAB
       );
   
   
@@ -360,20 +361,20 @@ describe("Pyotr tests", () => {
   
       let data2 = utils.getEncodedSwapData(
         owner.address,
-        tokenA.address,
-        tokenB.address,
         tokenD.address,
-        amountInBD
+        tokenB.address,
+        tokenA.address,
+        amountInAB
       );
   
   
       str = await VRouter__factory.getInterface(
         VRouter__factory.abi
       ).encodeFunctionData("swapReserveToExactNative", [
-        tokenD.address,
+        tokenA.address,
         tokenB.address,
-        abPool.address,
-        amountOutBD,
+        adPool.address,
+        amountOutAB,
         owner.address,
         data2,
         futureTs,
@@ -381,7 +382,9 @@ describe("Pyotr tests", () => {
   
       multiData.push(str);
   
-      await vRouterInstance.multicall(multiData, false);
+      await expect(vRouterInstance.multicall(multiData, false)).to.revertedWith(
+        "TNW"
+      );
   
 
 /*
