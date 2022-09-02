@@ -86,7 +86,7 @@ describe("Pyotr tests", () => {
     console.log(accounts.slice(1, 4))
     fixture.abPool = abPool;
 
-    
+      
     const lp_tokens_gained_in_wei = await abPool.balanceOf(trader.address)
     const lp_tokens_gained = Number(ethers.utils.formatEther(lp_tokens_gained_in_wei))
     const lp_tokens_should_be_gained = Math.sqrt(AInput * BInput)
@@ -561,6 +561,37 @@ it("Test 8: Complex Swap A --> B, should fail due to reserve ratio becomes below
     const tokenB = fixture.tokenB;
     const tokenD = fixture.tokenD;
     const trader = fixture.accounts[4];
+    const bdPool = fixture.bdPool
+
+    //const bdPoolPreviousAmount = tokenB.bala
+
+    const vRouterInstance = fixture.vRouterInstance;
+
+    let BInput = 100;
+    let DInput = 150;
+
+    await vRouterInstance.addLiquidity(
+      tokenB.address,
+      tokenD.address,
+      ethers.utils.parseEther(BInput.toString()),
+      ethers.utils.parseEther(DInput.toString()),
+      ethers.utils.parseEther(BInput.toString()),
+      ethers.utils.parseEther(DInput.toString()),
+      trader.address,
+      await utils.getFutureBlockTimestamp()
+    );
+    /*
+    const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address)
+    const lp_tokens_gained = Number(ethers.utils.formatEther(lp_tokens_gained_in_wei))
+    const lp_tokens_should_be_gained = Math.sqrt(BInput * DInput)
+    const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained)
+    expect(difference).lessThan(EPS)*/
+  })
+
+  it("Test 13: Liquidity withdrawal (B/D)", async() =>{
+    const tokenB = fixture.tokenB;
+    const tokenD = fixture.tokenD;
+    const trader = fixture.accounts[2];
     const bdPool = fixture.bdPool
 
     //const bdPoolPreviousAmount = tokenB.bala
