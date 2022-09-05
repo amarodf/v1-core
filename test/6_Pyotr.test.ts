@@ -593,30 +593,66 @@ it("Test 8: Complex Swap A --> B, should fail due to reserve ratio becomes below
     const tokenD = fixture.tokenD;
     const trader = fixture.accounts[2];
     const bdPool = fixture.bdPool
+    const withdrawAmount = 200
 
     //const bdPoolPreviousAmount = tokenB.bala
 
     const vRouterInstance = fixture.vRouterInstance;
 
-    let BInput = 100;
-    let DInput = 150;
+    let lpBalanceBefore = await bdPool.balanceOf(trader.address);
 
-    await vRouterInstance.addLiquidity(
+    let reserve0 = await bdPool.reserve0();
+    let reserve1 = await bdPool.reserve1();
+    reserve0 = reserve0;
+    reserve1 = reserve1;
+
+    await bdPool.approve(vRouterInstance.address, lpBalanceBefore);
+    //get account0 balance before
+    let tokenBBalanceBefore = await tokenB.balanceOf(trader.address);
+    let tokenDBalanceBefore = await tokenD.balanceOf(trader.address);
+
+    const futureTs = await utils.getFutureBlockTimestamp();
+    await vRouterInstance.removeLiquidity(
       tokenB.address,
       tokenD.address,
-      ethers.utils.parseEther(BInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
-      ethers.utils.parseEther(BInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
+      withdrawAmount,
+      0,
+      0,
       trader.address,
-      await utils.getFutureBlockTimestamp()
+      futureTs
     );
+    //get account0 balance before
+    let tokenABalanceAfter = await tokenB.balanceOf(trader.address);
+    let tokenBBalanceAfter = await tokenD.balanceOf(trader.address);
+
+    let reserve0After = await bdPool.reserve0();
+    let reserve1After = await bdPool.reserve1();
+
+    reserve0After = reserve0After;
+    reserve1After = reserve1After;
+
+    expect(tokenABalanceAfter).to.be.above(tokenBBalanceBefore);
+    expect(tokenBBalanceAfter).to.be.above(tokenDBalanceBefore);
+
     /*
     const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address)
     const lp_tokens_gained = Number(ethers.utils.formatEther(lp_tokens_gained_in_wei))
     const lp_tokens_should_be_gained = Math.sqrt(BInput * DInput)
     const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained)
     expect(difference).lessThan(EPS)*/
+  })
+
+  it("Test 14: Complex Swap A --> C using D", async() => {
+    // will be done when questions about swaps are resolved
+  })
+
+  it("Test 15: Exchange reserves", async() => {
+    const tokenA = fixture.tokenA;
+    const tokenC = fixture.tokenC;
+    const abPool = fixture.abPool;
+    const cdPool = fixture.cdPool;
+
+    
   })
 
 })
