@@ -80,6 +80,7 @@ describe("Pyotr tests", () => {
     fixture.abPool = abPool;
     await abPool.setFee(fixture.abFee, fixture.abFee);
     await abPool.setWhitelist([fixture.tokenC.address]);
+    await abPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     console.log(accounts.slice(1, 4));
     fixture.abPool = abPool;
 
@@ -121,6 +122,7 @@ describe("Pyotr tests", () => {
     const acPool = VPair__factory.connect(acAddress, fixture.owner);
     await acPool.setFee(fixture.acFee, fixture.acFee);
     await acPool.setWhitelist([fixture.tokenB.address]);
+    await acPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.acPool = acPool;
 
     const lp_tokens_gained_in_wei = await acPool.balanceOf(trader.address);
@@ -136,7 +138,6 @@ describe("Pyotr tests", () => {
     const tokenB = fixture.tokenB;
     const tokenD = fixture.tokenD;
     const trader = fixture.accounts[2];
-
     const vRouterInstance = fixture.vRouterInstance;
 
     let BInput = 300;
@@ -158,9 +159,10 @@ describe("Pyotr tests", () => {
       tokenD.address
     );
 
-    const bdPool = VPair__factory.connect(bdAddress, trader);
+    const bdPool = VPair__factory.connect(bdAddress, fixture.owner);
     await bdPool.setFee(fixture.bdFee, fixture.bdFee);
     await bdPool.setWhitelist([fixture.tokenA.address, fixture.tokenC.address]);
+    await bdPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.bdPool = bdPool;
 
     const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
@@ -198,9 +200,10 @@ describe("Pyotr tests", () => {
       tokenD.address
     );
 
-    const adPool = VPair__factory.connect(adAddress, trader);
+    const adPool = VPair__factory.connect(adAddress, fixture.owner);
     await adPool.setFee(fixture.adFee, fixture.adFee);
     await adPool.setWhitelist([fixture.tokenB.address, fixture.tokenC.address]);
+    await adPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.adPool = adPool;
 
     const lp_tokens_gained_in_wei = await adPool.balanceOf(trader.address);
@@ -525,9 +528,10 @@ describe("Pyotr tests", () => {
       tokenD.address
     );
 
-    const cdPool = VPair__factory.connect(cdAddress, trader);
+    const cdPool = VPair__factory.connect(cdAddress, fixture.owner);
     await cdPool.setFee(fixture.cdFee, fixture.cdFee);
     await cdPool.setWhitelist([fixture.tokenA.address, fixture.tokenB.address]);
+    await cdPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.cdPool = cdPool;
 
     const lp_tokens_gained_in_wei = await cdPool.balanceOf(trader.address);
