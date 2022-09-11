@@ -9,8 +9,14 @@ import { BigNumber } from "ethers";
 
 const EPS = 0.000001;
 
-async function swapInNativePool(vRouterInstance: any, trader: any, sellToken: any, buyToken: any, amountIn: any, futureTs: any){
-
+async function swapInNativePool(
+  vRouterInstance: any,
+  trader: any,
+  sellToken: any,
+  buyToken: any,
+  amountIn: any,
+  futureTs: any
+) {
   let amountOut = await vRouterInstance.getAmountOut(
     sellToken.address,
     buyToken.address,
@@ -19,66 +25,81 @@ async function swapInNativePool(vRouterInstance: any, trader: any, sellToken: an
 
   let str = await VRouter__factory.getInterface(
     VRouter__factory.abi
-  ).encodeFunctionData("swapToExactNative", [
+  ).encodeFunctionData("swapExactOutput", [
     sellToken.address,
     buyToken.address,
     amountOut,
     amountIn,
     trader.address,
-    futureTs
+    futureTs,
   ]);
 
-  return str
-  
+  return str;
 }
 
-async function swapInReservePool(vRouterInstance: any, trader: any, mainPool: any, supportPool: any, sellToken: any, buyToken: any, amountIn: any, futureTs: any){
-  
+async function swapInReservePool(
+  vRouterInstance: any,
+  trader: any,
+  mainPool: any,
+  supportPool: any,
+  sellToken: any,
+  buyToken: any,
+  amountIn: any,
+  futureTs: any
+) {
   let amountOut = await vRouterInstance.getVirtualAmountOut(
     mainPool.address,
     supportPool.address,
     amountIn
   );
 
-
   let str = await VRouter__factory.getInterface(
     VRouter__factory.abi
-  ).encodeFunctionData("swapReserveToExactNative", [
+  ).encodeFunctionData("swapReserveExactOutput", [
     buyToken.address,
     sellToken.address,
     supportPool.address,
     amountOut,
     amountIn,
     trader.address,
-    futureTs
+    futureTs,
   ]);
 
-  return str
-
+  return str;
 }
 
-async function createPool(vRouterInstance: any, vPairFactoryInstance: any, owner: any, trader: any, leftToken: any, rightToken: any, leftInput: any, rightInput: any, fee: any){
-    await vRouterInstance.addLiquidity(
-      leftToken.address,
-      rightToken.address,
-      ethers.utils.parseEther(leftInput.toString()),
-      ethers.utils.parseEther(rightInput.toString()),
-      ethers.utils.parseEther(leftInput.toString()),
-      ethers.utils.parseEther(rightInput.toString()),
-      trader.address,
-      await utils.getFutureBlockTimestamp()
-    );
+async function createPool(
+  vRouterInstance: any,
+  vPairFactoryInstance: any,
+  owner: any,
+  trader: any,
+  leftToken: any,
+  rightToken: any,
+  leftInput: any,
+  rightInput: any,
+  fee: any
+) {
+  await vRouterInstance.addLiquidity(
+    leftToken.address,
+    rightToken.address,
+    ethers.utils.parseEther(leftInput.toString()),
+    ethers.utils.parseEther(rightInput.toString()),
+    ethers.utils.parseEther(leftInput.toString()),
+    ethers.utils.parseEther(rightInput.toString()),
+    trader.address,
+    await utils.getFutureBlockTimestamp()
+  );
 
-    const abAddress = await vPairFactoryInstance.getPair(
-      leftToken.address,
-      rightToken.address
-    );
+  const abAddress = await vPairFactoryInstance.getPair(
+    leftToken.address,
+    rightToken.address
+  );
 
-    const pool = VPair__factory.connect(abAddress, owner);
-    await pool.setFee(fee, fee);
-    await pool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
-    
-    return pool
+  const pool = VPair__factory.connect(abAddress, owner);
+  await pool.setFee(fee, fee);
+  await pool.setMaxReserveThreshold(ethers.utils.parseEther("2000"));
+
+  return pool;
 }
 
 describe("Pyotr tests", () => {
@@ -133,11 +154,21 @@ describe("Pyotr tests", () => {
     let AInput = 100;
     let BInput = 200;
 
-    const abPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenB, AInput, BInput, fixture.abFee);
-    await abPool.setWhitelist([fixture.tokenC.address]);
+    const abPool = await createPool(
+      vRouterInstance,
+      fixture.vPairFactoryInstance,
+      fixture.owner,
+      trader,
+      tokenA,
+      tokenB,
+      AInput,
+      BInput,
+      fixture.abFee
+    );
+    await abPool.setAllowList([fixture.tokenC.address]);
 
     fixture.abPool = abPool;
-  
+
     const lp_tokens_gained_in_wei = await abPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
@@ -157,9 +188,19 @@ describe("Pyotr tests", () => {
     let AInput = 50;
     let CInput = 200;
 
-    const acPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenC, AInput, CInput, fixture.acFee)
-    await acPool.setWhitelist([fixture.tokenB.address]);
-   
+    const acPool = await createPool(
+      vRouterInstance,
+      fixture.vPairFactoryInstance,
+      fixture.owner,
+      trader,
+      tokenA,
+      tokenC,
+      AInput,
+      CInput,
+      fixture.acFee
+    );
+    await acPool.setAllowList([fixture.tokenB.address]);
+
     const lp_tokens_gained_in_wei = await acPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
@@ -178,8 +219,18 @@ describe("Pyotr tests", () => {
     let BInput = 300;
     let DInput = 450;
 
-    const bdPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenB, tokenD, BInput, DInput, fixture.bdFee)
-    await bdPool.setWhitelist([fixture.tokenA.address, fixture.tokenC.address]);
+    const bdPool = await createPool(
+      vRouterInstance,
+      fixture.vPairFactoryInstance,
+      fixture.owner,
+      trader,
+      tokenB,
+      tokenD,
+      BInput,
+      DInput,
+      fixture.bdFee
+    );
+    await bdPool.setAllowList([fixture.tokenA.address, fixture.tokenC.address]);
     fixture.bdPool = bdPool;
 
     const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
@@ -217,8 +268,18 @@ describe("Pyotr tests", () => {
       tokenD.address
     );
 
-    const adPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenD, AInput, DInput, fixture.adFee)
-    await adPool.setWhitelist([fixture.tokenB.address, fixture.tokenC.address]);
+    const adPool = await createPool(
+      vRouterInstance,
+      fixture.vPairFactoryInstance,
+      fixture.owner,
+      trader,
+      tokenA,
+      tokenD,
+      AInput,
+      DInput,
+      fixture.adFee
+    );
+    await adPool.setAllowList([fixture.tokenB.address, fixture.tokenC.address]);
     fixture.adPool = adPool;
 
     const lp_tokens_gained_in_wei = await adPool.balanceOf(trader.address);
@@ -227,7 +288,7 @@ describe("Pyotr tests", () => {
     );
     const lp_tokens_should_be_gained = Math.sqrt(AInput * DInput);
     const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained);
-  //  expect(difference).lessThan(EPS);
+    //  expect(difference).lessThan(EPS);
   });
 
   it("Test 5: Complex Swap A --> D", async () => {
@@ -243,7 +304,6 @@ describe("Pyotr tests", () => {
     const tokenABalanceBefore = await tokenA.balanceOf(owner.address);
     const tokenBBalanceBefore = await tokenB.balanceOf(owner.address);
     const tokenDBalanceBefore = await tokenD.balanceOf(owner.address);
- 
 
     const vRouterInstance = fixture.vRouterInstance;
 
@@ -251,56 +311,71 @@ describe("Pyotr tests", () => {
     const adPool = fixture.adPool;
     const bdPool = fixture.bdPool;
 
-    const tokenAPoolABBalanceBefore = await tokenA.balanceOf(abPool.address)
-    const tokenAPoolADBalanceBefore = await tokenA.balanceOf(adPool.address)
-    const tokenAPoolBDBalanceBefore = await tokenA.balanceOf(bdPool.address)
+    const tokenAPoolABBalanceBefore = await tokenA.balanceOf(abPool.address);
+    const tokenAPoolADBalanceBefore = await tokenA.balanceOf(adPool.address);
+    const tokenAPoolBDBalanceBefore = await tokenA.balanceOf(bdPool.address);
 
-    const tokenDPoolABBalanceBefore = await tokenD.balanceOf(abPool.address)
-    const tokenDPoolADBalanceBefore = await tokenD.balanceOf(adPool.address)
-    const tokenDPoolBDBalanceBefore = await tokenD.balanceOf(bdPool.address)
-    console.log(tokenAPoolABBalanceBefore)
-    
+    const tokenDPoolABBalanceBefore = await tokenD.balanceOf(abPool.address);
+    const tokenDPoolADBalanceBefore = await tokenD.balanceOf(adPool.address);
+    const tokenDPoolBDBalanceBefore = await tokenD.balanceOf(bdPool.address);
+    console.log(tokenAPoolABBalanceBefore);
 
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenD, amountInAD, futureTs)
+    let str = await swapInNativePool(
+      vRouterInstance,
+      owner,
+      tokenA,
+      tokenD,
+      amountInAD,
+      futureTs
+    );
     multiData.push(str);
 
-    str = await swapInReservePool(vRouterInstance, owner, bdPool, abPool, tokenB, tokenD, amountInBD, futureTs)
+    str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      bdPool,
+      abPool,
+      tokenB,
+      tokenD,
+      amountInBD,
+      futureTs
+    );
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
 
-    const tokenAPoolABBalanceAfter = await tokenA.balanceOf(abPool.address)
-    const tokenAPoolADBalanceAfter = await tokenA.balanceOf(adPool.address)
-    const tokenAPoolBDBalanceAfter = await tokenA.balanceOf(bdPool.address)
+    const tokenAPoolABBalanceAfter = await tokenA.balanceOf(abPool.address);
+    const tokenAPoolADBalanceAfter = await tokenA.balanceOf(adPool.address);
+    const tokenAPoolBDBalanceAfter = await tokenA.balanceOf(bdPool.address);
 
-    const tokenDPoolABBalanceAfter = await tokenD.balanceOf(abPool.address)
-    const tokenDPoolADBalanceAfter = await tokenD.balanceOf(adPool.address)
-    const tokenDPoolBDBalanceAfter = await tokenD.balanceOf(bdPool.address)
+    const tokenDPoolABBalanceAfter = await tokenD.balanceOf(abPool.address);
+    const tokenDPoolADBalanceAfter = await tokenD.balanceOf(adPool.address);
+    const tokenDPoolBDBalanceAfter = await tokenD.balanceOf(bdPool.address);
 
-  //  const differenceAinAB = tokenAPoolABBalanceAfter - tokenAPoolABBalanceBefore
-  //  const differenceAinAD = tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore
-   // const differenceAinBD = tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore
-   // const differenceDinAB = tokenDPoolABBalanceAfter - tokenDPoolABBalanceBefore
-  
-   const differenceDinAD = (tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore).toString()
-  // const differenceDinAD_Tokens = ethers.utils.formatEther(differenceDinAD)
-  // const amountOutAD_Tokens = ethers.utils.formatEther()
-  
+    //  const differenceAinAB = tokenAPoolABBalanceAfter - tokenAPoolABBalanceBefore
+    //  const differenceAinAD = tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore
+    // const differenceAinBD = tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore
+    // const differenceDinAB = tokenDPoolABBalanceAfter - tokenDPoolABBalanceBefore
+
+    const differenceDinAD = (
+      tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore
+    ).toString();
+    // const differenceDinAD_Tokens = ethers.utils.formatEther(differenceDinAD)
+    // const amountOutAD_Tokens = ethers.utils.formatEther()
+
     // const differenceDinBD = tokenDPoolBDBalanceAfter - tokenDPoolBDBalanceBefore*/
-    
- //   const differenceDinAD = _differenceDinAD.toString()
-  
-    console.log('NUMBERS')
-    console.log(differenceDinAD)
-    console.log(ethers.utils.formatEther(differenceDinAD))
-  //  console.log(amountOutAD)
-  //  console.log(ethers.utils.formatEther(amountOutAD))
 
-    
+    //   const differenceDinAD = _differenceDinAD.toString()
+
+    console.log("NUMBERS");
+    console.log(differenceDinAD);
+    console.log(ethers.utils.formatEther(differenceDinAD));
+    //  console.log(amountOutAD)
+    //  console.log(ethers.utils.formatEther(amountOutAD))
   });
 
   it("Test 6: Complex Swap D --> B, should fail as D is not in whitelist", async () => {
@@ -323,10 +398,24 @@ describe("Pyotr tests", () => {
 
     let multiData = [];
 
-    let str = await swapInNativePool(vRouterInstance, owner, tokenD, tokenB, amountInBD, futureTs)
+    let str = await swapInNativePool(
+      vRouterInstance,
+      owner,
+      tokenD,
+      tokenB,
+      amountInBD,
+      futureTs
+    );
     multiData.push(str);
 
-    str = await swapInNativePool(vRouterInstance, owner, tokenD, tokenA, amountInAB, futureTs)
+    str = await swapInNativePool(
+      vRouterInstance,
+      owner,
+      tokenD,
+      tokenA,
+      amountInAB,
+      futureTs
+    );
     multiData.push(str);
 
     await expect(vRouterInstance.multicall(multiData, false)).to.revertedWith(
@@ -358,10 +447,26 @@ describe("Pyotr tests", () => {
 
     let multiData = [];
 
-    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenB, amountInAB, futureTs)
+    let str = await swapInNativePool(
+      vRouterInstance,
+      owner,
+      tokenA,
+      tokenB,
+      amountInAB,
+      futureTs
+    );
     multiData.push(str);
 
-    str = await swapInReservePool(vRouterInstance, owner, bdPool, adPool, tokenD, tokenB, amountInBD, futureTs)
+    str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      bdPool,
+      adPool,
+      tokenD,
+      tokenB,
+      amountInBD,
+      futureTs
+    );
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
@@ -390,15 +495,31 @@ describe("Pyotr tests", () => {
 
     let multiData = [];
 
-    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenB, amountInAB, futureTs)
+    let str = await swapInNativePool(
+      vRouterInstance,
+      owner,
+      tokenA,
+      tokenB,
+      amountInAB,
+      futureTs
+    );
     multiData.push(str);
 
-    str = await swapInReservePool(vRouterInstance, owner, bdPool, adPool, tokenD, tokenB, amountInBD, futureTs)
+    str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      bdPool,
+      adPool,
+      tokenD,
+      tokenB,
+      amountInBD,
+      futureTs
+    );
     multiData.push(str);
 
-    await vRouterInstance
-      .multicall(multiData, false)
-      .should.revertedWith("TBPT");
+    expect(await vRouterInstance.multicall(multiData, false)).to.rejectedWith(
+      "TBPT"
+    );
   });
 
   it("Test 9: Initial Liquidity Proivsion for C/D", async () => {
@@ -411,9 +532,18 @@ describe("Pyotr tests", () => {
     let CInput = 20;
     let DInput = 230;
 
-    
-    const cdPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenC, tokenD, CInput, DInput, fixture.cdFee);
-    await cdPool.setWhitelist([fixture.tokenA.address, fixture.tokenB.address]);
+    const cdPool = await createPool(
+      vRouterInstance,
+      fixture.vPairFactoryInstance,
+      fixture.owner,
+      trader,
+      tokenC,
+      tokenD,
+      CInput,
+      DInput,
+      fixture.cdFee
+    );
+    await cdPool.setAllowList([fixture.tokenA.address, fixture.tokenB.address]);
     fixture.cdPool = cdPool;
 
     const lp_tokens_gained_in_wei = await cdPool.balanceOf(trader.address);
@@ -433,7 +563,7 @@ describe("Pyotr tests", () => {
 
   it("Test 11: Complex Swap C --> B", async () => {
     const tokenA = fixture.tokenA;
-    const tokenB = fixture.tokenB;    
+    const tokenB = fixture.tokenB;
     const tokenC = fixture.tokenC;
     const tokenD = fixture.tokenD;
     const owner = fixture.owner;
@@ -441,9 +571,9 @@ describe("Pyotr tests", () => {
     const amountInAB = ethers.utils.parseEther("0.9");
     const amountInBD = ethers.utils.parseEther("0.1");
 
- //   const tokenABalanceBefore = await tokenA.balanceOf(owner.address);
- //   const tokenBBalanceBefore = await tokenB.balanceOf(owner.address);
- //   const tokenDBalanceBefore = await tokenD.balanceOf(owner.address);
+    //   const tokenABalanceBefore = await tokenA.balanceOf(owner.address);
+    //   const tokenBBalanceBefore = await tokenB.balanceOf(owner.address);
+    //   const tokenDBalanceBefore = await tokenD.balanceOf(owner.address);
 
     const vRouterInstance = fixture.vRouterInstance;
 
@@ -456,13 +586,30 @@ describe("Pyotr tests", () => {
 
     let multiData = [];
 
-    let str = await swapInReservePool(vRouterInstance, owner, abPool, acPool, tokenA, tokenB, amountInAB, futureTs);
+    let str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      abPool,
+      acPool,
+      tokenA,
+      tokenB,
+      amountInAB,
+      futureTs
+    );
     multiData.push(str);
-    str = await swapInReservePool(vRouterInstance, owner, bdPool, cdPool, tokenD, tokenB, amountInBD, futureTs);
+    str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      bdPool,
+      cdPool,
+      tokenD,
+      tokenB,
+      amountInBD,
+      futureTs
+    );
     multiData.push(str);
-    
-    await vRouterInstance.multicall(multiData, false);
 
+    await vRouterInstance.multicall(multiData, false);
   });
 
   it("Test 12: Subsequent liquidity provision for B/D", async () => {
@@ -488,14 +635,15 @@ describe("Pyotr tests", () => {
       trader.address,
       await utils.getFutureBlockTimestamp()
     );
-    
-    const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address)
-    const lp_tokens_gained = Number(ethers.utils.formatEther(lp_tokens_gained_in_wei))
-    const lp_tokens_should_be_gained = Math.sqrt(BInput * DInput)
-    const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained)
-    expect(difference).lessThan(EPS)
+
+    const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
+    const lp_tokens_gained = Number(
+      ethers.utils.formatEther(lp_tokens_gained_in_wei)
+    );
+    const lp_tokens_should_be_gained = Math.sqrt(BInput * DInput);
+    const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained);
+    expect(difference).lessThan(EPS);
   });
-  
 
   it("Test 13: Liquidity withdrawal (B/D)", async () => {
     const tokenB = fixture.tokenB;
@@ -542,13 +690,20 @@ describe("Pyotr tests", () => {
 
     const futureTs = await utils.getFutureBlockTimestamp();
     let multiData = [];
-    let str = await swapInReservePool(vRouterInstance, owner, cdPool, adPool, tokenD, tokenC, amountInCD, futureTs);
+    let str = await swapInReservePool(
+      vRouterInstance,
+      owner,
+      cdPool,
+      adPool,
+      tokenD,
+      tokenC,
+      amountInCD,
+      futureTs
+    );
     multiData.push(str);
-    
+
     await vRouterInstance.multicall(multiData, false);
   });
 
-  it("Test 15: Exchange reserves AB <-> CD", async() => {
-    
-  })
+  it("Test 15: Exchange reserves AB <-> CD", async () => {});
 });
