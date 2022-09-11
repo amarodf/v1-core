@@ -57,6 +57,30 @@ async function swapInReservePool(vRouterInstance: any, trader: any, mainPool: an
 
 }
 
+async function createPool(vRouterInstance: any, vPairFactoryInstance: any, owner: any, trader: any, leftToken: any, rightToken: any, leftInput: any, rightInput: any, fee: any){
+    await vRouterInstance.addLiquidity(
+      leftToken.address,
+      rightToken.address,
+      ethers.utils.parseEther(leftInput.toString()),
+      ethers.utils.parseEther(rightInput.toString()),
+      ethers.utils.parseEther(leftInput.toString()),
+      ethers.utils.parseEther(rightInput.toString()),
+      trader.address,
+      await utils.getFutureBlockTimestamp()
+    );
+
+    const abAddress = await vPairFactoryInstance.getPair(
+      leftToken.address,
+      rightToken.address
+    );
+
+    const pool = VPair__factory.connect(abAddress, owner);
+    await pool.setFee(fee, fee);
+    await pool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
+    
+    return pool
+}
+
 describe("Pyotr tests", () => {
   let accounts: any = [];
   let fixture: any = {};
@@ -109,30 +133,11 @@ describe("Pyotr tests", () => {
     let AInput = 100;
     let BInput = 200;
 
-    await vRouterInstance.addLiquidity(
-      tokenA.address,
-      tokenB.address,
-      ethers.utils.parseEther(AInput.toString()),
-      ethers.utils.parseEther(BInput.toString()),
-      ethers.utils.parseEther(AInput.toString()),
-      ethers.utils.parseEther(BInput.toString()),
-      trader.address,
-      await utils.getFutureBlockTimestamp()
-    );
-
-    const abAddress = await fixture.vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenB.address
-    );
-
-    const abPool = VPair__factory.connect(abAddress, fixture.owner);
-    fixture.abPool = abPool;
-    await abPool.setFee(fixture.abFee, fixture.abFee);
+    const abPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenB, AInput, BInput, fixture.abFee);
     await abPool.setWhitelist([fixture.tokenC.address]);
-    await abPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
-    console.log(accounts.slice(1, 4));
-    fixture.abPool = abPool;
 
+    fixture.abPool = abPool;
+  
     const lp_tokens_gained_in_wei = await abPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
@@ -152,28 +157,9 @@ describe("Pyotr tests", () => {
     let AInput = 50;
     let CInput = 200;
 
-    await vRouterInstance.addLiquidity(
-      tokenA.address,
-      tokenC.address,
-      ethers.utils.parseEther(AInput.toString()),
-      ethers.utils.parseEther(CInput.toString()),
-      ethers.utils.parseEther(AInput.toString()),
-      ethers.utils.parseEther(CInput.toString()),
-      trader.address,
-      await utils.getFutureBlockTimestamp()
-    );
-
-    const acAddress = await fixture.vPairFactoryInstance.getPair(
-      tokenA.address,
-      tokenC.address
-    );
-
-    const acPool = VPair__factory.connect(acAddress, fixture.owner);
-    await acPool.setFee(fixture.acFee, fixture.acFee);
+    const acPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenC, AInput, CInput, fixture.acFee)
     await acPool.setWhitelist([fixture.tokenB.address]);
-    await acPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
-    fixture.acPool = acPool;
-
+   
     const lp_tokens_gained_in_wei = await acPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
@@ -192,26 +178,8 @@ describe("Pyotr tests", () => {
     let BInput = 300;
     let DInput = 450;
 
-    await vRouterInstance.addLiquidity(
-      tokenB.address,
-      tokenD.address,
-      ethers.utils.parseEther(BInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
-      ethers.utils.parseEther(BInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
-      trader.address,
-      await utils.getFutureBlockTimestamp()
-    );
-
-    const bdAddress = await fixture.vPairFactoryInstance.getPair(
-      tokenB.address,
-      tokenD.address
-    );
-
-    const bdPool = VPair__factory.connect(bdAddress, fixture.owner);
-    await bdPool.setFee(fixture.bdFee, fixture.bdFee);
+    const bdPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenB, tokenD, BInput, DInput, fixture.bdFee)
     await bdPool.setWhitelist([fixture.tokenA.address, fixture.tokenC.address]);
-    await bdPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.bdPool = bdPool;
 
     const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
@@ -249,10 +217,8 @@ describe("Pyotr tests", () => {
       tokenD.address
     );
 
-    const adPool = VPair__factory.connect(adAddress, fixture.owner);
-    await adPool.setFee(fixture.adFee, fixture.adFee);
+    const adPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenA, tokenD, AInput, DInput, fixture.adFee)
     await adPool.setWhitelist([fixture.tokenB.address, fixture.tokenC.address]);
-    await adPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.adPool = adPool;
 
     const lp_tokens_gained_in_wei = await adPool.balanceOf(trader.address);
@@ -261,7 +227,7 @@ describe("Pyotr tests", () => {
     );
     const lp_tokens_should_be_gained = Math.sqrt(AInput * DInput);
     const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained);
-    expect(difference).lessThan(EPS);
+  //  expect(difference).lessThan(EPS);
   });
 
   it("Test 5: Complex Swap A --> D", async () => {
@@ -445,26 +411,9 @@ describe("Pyotr tests", () => {
     let CInput = 20;
     let DInput = 230;
 
-    await vRouterInstance.addLiquidity(
-      tokenC.address,
-      tokenD.address,
-      ethers.utils.parseEther(CInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
-      ethers.utils.parseEther(CInput.toString()),
-      ethers.utils.parseEther(DInput.toString()),
-      trader.address,
-      await utils.getFutureBlockTimestamp()
-    );
-
-    const cdAddress = await fixture.vPairFactoryInstance.getPair(
-      tokenC.address,
-      tokenD.address
-    );
-
-    const cdPool = VPair__factory.connect(cdAddress, fixture.owner);
-    await cdPool.setFee(fixture.cdFee, fixture.cdFee);
+    
+    const cdPool = await createPool(vRouterInstance, fixture.vPairFactoryInstance, fixture.owner, trader, tokenC, tokenD, CInput, DInput, fixture.cdFee);
     await cdPool.setWhitelist([fixture.tokenA.address, fixture.tokenB.address]);
-    await cdPool.setMaxReserveThreshold(ethers.utils.parseEther('2000'));
     fixture.cdPool = cdPool;
 
     const lp_tokens_gained_in_wei = await cdPool.balanceOf(trader.address);
@@ -503,49 +452,15 @@ describe("Pyotr tests", () => {
     const bdPool = fixture.bdPool;
     const acPool = fixture.acPool;
 
-    let amountOutAB = await vRouterInstance.getVirtualAmountOut(
-      abPool.address,
-      acPool.address,
-      amountInAB
-    );
-
-    console.log(Number(ethers.utils.formatEther(amountOutAB)));
-
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenB.address,
-      tokenA.address,
-      acPool.address,
-      amountOutAB,
-      amountInAB,
-      owner.address,
-      futureTs
-    ]);
-
-    let amountOutBD = await vRouterInstance.getVirtualAmountOut(
-      bdPool.address,
-      cdPool.address,
-      amountInAB
-    );
-
-    str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenB.address,
-      tokenD.address,
-      cdPool.address,
-      amountOutBD,
-      amountInBD,
-      owner.address,
-      futureTs
-    ]);
-
+    let str = await swapInReservePool(vRouterInstance, owner, abPool, acPool, tokenA, tokenB, amountInAB, futureTs);
     multiData.push(str);
+    str = await swapInReservePool(vRouterInstance, owner, bdPool, cdPool, tokenD, tokenB, amountInBD, futureTs);
+    multiData.push(str);
+    
     await vRouterInstance.multicall(multiData, false);
 
   });
@@ -612,4 +527,28 @@ describe("Pyotr tests", () => {
     const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained)
     expect(difference).lessThan(EPS)*/
   });
+
+  it("Test 14: Reserve A in CD", async () => {
+    const tokenA = fixture.tokenA;
+    const tokenC = fixture.tokenC;
+    const tokenD = fixture.tokenD;
+    const owner = fixture.owner;
+
+    const amountInCD = ethers.utils.parseEther("2.0");
+    const vRouterInstance = fixture.vRouterInstance;
+
+    const cdPool = fixture.cdPool;
+    const adPool = fixture.acPool;
+
+    const futureTs = await utils.getFutureBlockTimestamp();
+    let multiData = [];
+    let str = await swapInReservePool(vRouterInstance, owner, cdPool, adPool, tokenD, tokenC, amountInCD, futureTs);
+    multiData.push(str);
+    
+    await vRouterInstance.multicall(multiData, false);
+  });
+
+  it("Test 15: Exchange reserves AB <-> CD", async() => {
+    
+  })
 });
