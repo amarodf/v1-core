@@ -9,6 +9,54 @@ import { BigNumber } from "ethers";
 
 const EPS = 0.000001;
 
+async function swapInNativePool(vRouterInstance: any, trader: any, sellToken: any, buyToken: any, amountIn: any, futureTs: any){
+
+  let amountOut = await vRouterInstance.getAmountOut(
+    sellToken.address,
+    buyToken.address,
+    amountIn
+  );
+
+  let str = await VRouter__factory.getInterface(
+    VRouter__factory.abi
+  ).encodeFunctionData("swapToExactNative", [
+    sellToken.address,
+    buyToken.address,
+    amountOut,
+    amountIn,
+    trader.address,
+    futureTs
+  ]);
+
+  return str
+  
+}
+
+async function swapInReservePool(vRouterInstance: any, trader: any, mainPool: any, supportPool: any, sellToken: any, buyToken: any, amountIn: any, futureTs: any){
+  
+  let amountOut = await vRouterInstance.getVirtualAmountOut(
+    mainPool.address,
+    supportPool.address,
+    amountIn
+  );
+
+
+  let str = await VRouter__factory.getInterface(
+    VRouter__factory.abi
+  ).encodeFunctionData("swapReserveToExactNative", [
+    buyToken.address,
+    sellToken.address,
+    supportPool.address,
+    amountOut,
+    amountIn,
+    trader.address,
+    futureTs
+  ]);
+
+  return str
+
+}
+
 describe("Pyotr tests", () => {
   let accounts: any = [];
   let fixture: any = {};
@@ -247,56 +295,18 @@ describe("Pyotr tests", () => {
     console.log(tokenAPoolABBalanceBefore)
     
 
-    let amountOutAD = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenD.address,
-      amountInAD
-    );
-
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapToExactNative", [
-      tokenA.address,
-      tokenD.address,
-      amountOutAD,
-      amountInAD,
-      owner.address,
-      futureTs,
-    ]);
-
+    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenD, amountInAD, futureTs)
     multiData.push(str);
 
-    console.log(Number(ethers.utils.formatEther(amountOutAD)));
-
-    let amountOutBD = await vRouterInstance.getVirtualAmountOut(
-      bdPool.address,
-      abPool.address,
-      amountInBD
-    );
-
-    console.log(Number(ethers.utils.formatEther(amountOutBD)));
-
-    str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenD.address,
-      tokenB.address,
-      abPool.address,
-      amountOutBD,
-      amountInBD,
-      owner.address,
-      futureTs
-    ]);
-
+    str = await swapInReservePool(vRouterInstance, owner, bdPool, abPool, tokenB, tokenD, amountInBD, futureTs)
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
 
-    /*
     const tokenAPoolABBalanceAfter = await tokenA.balanceOf(abPool.address)
     const tokenAPoolADBalanceAfter = await tokenA.balanceOf(adPool.address)
     const tokenAPoolBDBalanceAfter = await tokenA.balanceOf(bdPool.address)
@@ -305,30 +315,24 @@ describe("Pyotr tests", () => {
     const tokenDPoolADBalanceAfter = await tokenD.balanceOf(adPool.address)
     const tokenDPoolBDBalanceAfter = await tokenD.balanceOf(bdPool.address)
 
-    const differenceAinAB = tokenAPoolABBalanceAfter - tokenAPoolABBalanceBefore
-    const differenceAinAD = tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore
-    const differenceAinBD = tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore
-    const differenceDinAB = tokenDPoolABBalanceAfter - tokenDPoolABBalanceBefore
-    const differenceDinAD = (tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore).toString()
-    const differenceDinBD = tokenDPoolBDBalanceAfter - tokenDPoolBDBalanceBefore*/
-    
-  //  const differenceDinAD = _differenceDinAD.toString()
+  //  const differenceAinAB = tokenAPoolABBalanceAfter - tokenAPoolABBalanceBefore
+  //  const differenceAinAD = tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore
+   // const differenceAinBD = tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore
+   // const differenceDinAB = tokenDPoolABBalanceAfter - tokenDPoolABBalanceBefore
   
-   /* console.log('NUMBERS')
-    console.log(amountOutAD)
-    console.log(ethers.utils.formatEther(amountOutAD))
-    console.log('MMMMMMMM')
+   const differenceDinAD = (tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore).toString()
+  // const differenceDinAD_Tokens = ethers.utils.formatEther(differenceDinAD)
+  // const amountOutAD_Tokens = ethers.utils.formatEther()
+  
+    // const differenceDinBD = tokenDPoolBDBalanceAfter - tokenDPoolBDBalanceBefore*/
+    
+ //   const differenceDinAD = _differenceDinAD.toString()
+  
+    console.log('NUMBERS')
     console.log(differenceDinAD)
     console.log(ethers.utils.formatEther(differenceDinAD))
-    console.log('NNNNNNN')
-    console.log(differenceDinAD)
-    console.log(amountOutAD.eq(differenceDinAD))
-    expect(differenceDinAD).be.equal(amountOutAD)
-    console.log(amountInAD)
-    console.log(differenceAinBD)
-    console.log(differenceDinAB)
-    console.log(differenceDinAD)
-    console.log(ethers.utils.formatEther(differenceDinBD))*/
+  //  console.log(amountOutAD)
+  //  console.log(ethers.utils.formatEther(amountOutAD))
 
     
   });
@@ -349,51 +353,14 @@ describe("Pyotr tests", () => {
     const adPool = fixture.adPool;
     const bdPool = fixture.bdPool;
 
-    let amountOutBD = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenD.address,
-      amountInBD
-    );
-
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapToExactNative", [
-      tokenB.address,
-      tokenD.address,
-      amountOutBD,
-      amountInBD,
-      owner.address,
-      futureTs,
-    ]);
-
+    let str = await swapInNativePool(vRouterInstance, owner, tokenD, tokenB, amountInBD, futureTs)
     multiData.push(str);
 
-  //  console.log(Number(ethers.utils.formatEther(amountOutBD)));
-
-    let amountOutAB = await vRouterInstance.getVirtualAmountOut(
-      abPool.address,
-      adPool.address,
-      amountInAB
-    );
-
-    console.log(Number(ethers.utils.formatEther(amountOutBD)));
-
-    str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenA.address,
-      tokenB.address,
-      adPool.address,
-      amountOutAB,
-      amountInAB,
-      owner.address,
-      futureTs,
-    ]);
-
+    str = await swapInNativePool(vRouterInstance, owner, tokenD, tokenA, amountInAB, futureTs)
     multiData.push(str);
 
     await expect(vRouterInstance.multicall(multiData, false)).to.revertedWith(
@@ -421,51 +388,14 @@ describe("Pyotr tests", () => {
     const adPool = fixture.adPool;
     const bdPool = fixture.bdPool;
 
-    let amountOutAB = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenB.address,
-      amountInAB
-    );
-
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapToExactNative", [
-      tokenA.address,
-      tokenD.address,
-      amountOutAB,
-      amountInAB,
-      owner.address,
-      futureTs,
-    ]);
-
+    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenB, amountInAB, futureTs)
     multiData.push(str);
 
-    console.log(Number(ethers.utils.formatEther(amountOutAB)));
-
-    let amountOutBD = await vRouterInstance.getVirtualAmountOut(
-      bdPool.address,
-      adPool.address,
-      amountInBD
-    );
-
-    console.log(Number(ethers.utils.formatEther(amountOutBD)));
-
-    str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenB.address,
-      tokenD.address,
-      abPool.address,
-      amountOutBD,
-      amountInBD,
-      owner.address,
-      futureTs,
-    ]);
-
+    str = await swapInReservePool(vRouterInstance, owner, bdPool, adPool, tokenD, tokenB, amountInBD, futureTs)
     multiData.push(str);
 
     await vRouterInstance.multicall(multiData, false);
@@ -490,51 +420,14 @@ describe("Pyotr tests", () => {
     const adPool = fixture.adPool;
     const bdPool = fixture.bdPool;
 
-    let amountOutAB = await vRouterInstance.getAmountOut(
-      tokenA.address,
-      tokenB.address,
-      amountInAB
-    );
-
     const futureTs = await utils.getFutureBlockTimestamp();
 
     let multiData = [];
 
-    let str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapToExactNative", [
-      tokenA.address,
-      tokenD.address,
-      amountOutAB,
-      amountInAB,
-      owner.address,
-      futureTs,
-    ]);
-
+    let str = await swapInNativePool(vRouterInstance, owner, tokenA, tokenB, amountInAB, futureTs)
     multiData.push(str);
 
-    console.log(Number(ethers.utils.formatEther(amountOutAB)));
-
-    let amountOutBD = await vRouterInstance.getVirtualAmountOut(
-      bdPool.address,
-      adPool.address,
-      amountInBD
-    );
-
-    console.log(Number(ethers.utils.formatEther(amountOutBD)));
-
-    str = await VRouter__factory.getInterface(
-      VRouter__factory.abi
-    ).encodeFunctionData("swapReserveToExactNative", [
-      tokenB.address,
-      tokenA.address,
-      abPool.address,
-      amountOutBD,
-      amountInBD,
-      owner.address,
-      futureTs,
-    ]);
-
+    str = await swapInReservePool(vRouterInstance, owner, bdPool, adPool, tokenD, tokenB, amountInBD, futureTs)
     multiData.push(str);
 
     await vRouterInstance
@@ -591,7 +484,7 @@ describe("Pyotr tests", () => {
 
   it("Test 11: Complex Swap C --> B", async () => {
     const tokenA = fixture.tokenA;
-    const tokenB = fixture.tokenB;
+    const tokenB = fixture.tokenB;    
     const tokenC = fixture.tokenC;
     const tokenD = fixture.tokenD;
     const owner = fixture.owner;
