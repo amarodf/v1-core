@@ -37,21 +37,7 @@ interface IvPair {
 
     event Sync(uint256 balance0, uint256 balance1);
 
-    event FactoryChanged(address newFactory);
-
-    event FeeChanged(uint24 fee, uint24 vFee);
-
-    event ReserveThresholdChanged(uint256 newThreshold);
-
-    event WhitelistCountChanged(uint256 newCount);
-
-    event FactoryChanged(address newFactory);
-
-    event FeeChanged(uint24 fee, uint24 vFee);
-
-    event ReserveThresholdChanged(uint256 newThreshold);
-
-    event AllowListCountChanged(uint24 _maxAllowListCount);
+    event ReserveSync(address asset, uint256 balance);
 
     event FactoryChanged(address newFactory);
 
