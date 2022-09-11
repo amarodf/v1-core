@@ -5,7 +5,7 @@ import {
   VPairFactory__factory,
   VPair__factory,
   VRouter__factory,
-  ExchangeReserves__factory,
+  VExchangeReserves__factory,
   WETH9__factory,
 } from "../../typechain-types/index";
 
@@ -68,29 +68,24 @@ export async function deployPools() {
     owner.address
   );
 
-  const WETH9Instance = await new WETH9__factory(
-    WETH9__factory.createInterface(),
-    WETH9__factory.bytecode,
-    owner
-  ).deploy();
+  const WETH9ContractFactory = await ethers.getContractFactory("WETH9");
+  const WETH9Instance = await WETH9ContractFactory.deploy();
 
-  const vPairFactoryInstance = await new VPairFactory__factory(
-    VPairFactory__factory.createInterface(),
-    VPairFactory__factory.bytecode,
-    owner
-  ).deploy();
+  const vPairContractFactory = await ethers.getContractFactory("vPairFactory");
+  const vPairFactoryInstance = await vPairContractFactory.deploy();
 
-  const exchageReserveInstance = await new ExchangeReserves__factory(
-    ExchangeReserves__factory.createInterface(),
-    ExchangeReserves__factory.bytecode,
-    owner
-  ).deploy(vPairFactoryInstance.address);
+  const vRouterContractFactory = await ethers.getContractFactory("vRouter");
+  const vRouterInstance = await vRouterContractFactory.deploy(
+    vPairFactoryInstance.address,
+    WETH9Instance.address
+  );
 
-  const vRouterInstance = await new VRouter__factory(
-    VRouter__factory.createInterface(),
-    VRouter__factory.bytecode,
-    owner
-  ).deploy(vPairFactoryInstance.address, WETH9Instance.address);
+  const vExchangeReserveContractFactory = await ethers.getContractFactory(
+    "vExchangeReserves"
+  );
+  const exchageReserveInstance = await vExchangeReserveContractFactory.deploy(
+    vPairFactoryInstance.address
+  );
 
   await tokenA.approve(vRouterInstance.address, issueAmount);
   await tokenB.approve(vRouterInstance.address, issueAmount);
@@ -169,10 +164,10 @@ export async function deployPools() {
   const abPool = VPair__factory.connect(address1, owner);
 
   // whitelist token C
-  await abPool.setWhitelist([tokenC.address]);
+  await abPool.setAllowList([tokenC.address]);
 
-  const reserve0Pool1 = await abPool.reserve0();
-  const reserve1Pool1 = await abPool.reserve1();
+  const reserve0Pool1 = await abPool.pairBalance0();
+  const reserve1Pool1 = await abPool.pairBalance1();
 
   const pool1Reserve0 = ethers.utils.formatEther(reserve0Pool1);
   const pool1Reserve1 = ethers.utils.formatEther(reserve1Pool1);
@@ -188,10 +183,10 @@ export async function deployPools() {
   const acPool = VPair__factory.connect(address2, owner);
 
   // whitelist token B
-  await acPool.setWhitelist([tokenB.address]);
+  await acPool.setAllowList([tokenB.address]);
 
-  const reserve0Pool2 = await acPool.reserve0();
-  const reserve1Pool2 = await acPool.reserve1();
+  const reserve0Pool2 = await acPool.pairBalance0();
+  const reserve1Pool2 = await acPool.pairBalance1();
 
   const pool2Reserve0 = ethers.utils.formatEther(reserve0Pool2);
   const pool2Reserve1 = ethers.utils.formatEther(reserve1Pool2);
@@ -207,10 +202,10 @@ export async function deployPools() {
   const bcPool = VPair__factory.connect(address3, owner);
 
   // whitelist token A
-  await bcPool.setWhitelist([tokenA.address]);
+  await bcPool.setAllowList([tokenA.address]);
 
-  const reserve0Pool3 = await bcPool.reserve0();
-  const reserve1Pool3 = await bcPool.reserve1();
+  const reserve0Pool3 = await bcPool.pairBalance0();
+  const reserve1Pool3 = await bcPool.pairBalance1();
 
   const pool3Reserve0 = ethers.utils.formatEther(reserve0Pool3);
   const pool3Reserve1 = ethers.utils.formatEther(reserve1Pool3);
@@ -226,10 +221,10 @@ export async function deployPools() {
   const bdPool = VPair__factory.connect(address1, owner);
 
   // whitelist token C
-  await bdPool.setWhitelist([tokenC.address]);
+  await bdPool.setAllowList([tokenC.address]);
 
-  const reserve0Pool4 = await bdPool.reserve0();
-  const reserve1Pool4 = await bdPool.reserve1();
+  const reserve0Pool4 = await bdPool.pairBalance0();
+  const reserve1Pool4 = await bdPool.pairBalance1();
 
   const pool4Reserve0 = ethers.utils.formatEther(reserve0Pool4);
   const pool4Reserve1 = ethers.utils.formatEther(reserve1Pool4);
