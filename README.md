@@ -1,23 +1,28 @@
 # README #
 
-Virtuswap smart contracts
+Implementation of the [Virtuswap Whitepaper]( https://virtuswap.io/wp-content/uploads/2021/11/WP-Virtuswap-Oct-18-2021.pdf) using Solidity for EVM-compatible networks.  
+More in-depth documentation is available at [docs.virtuswap.io](https://docs.virtuswap.io).  
+
+
+#  Local development #
+Hardhat requires `node@>=16.0`
+
 
 #  Installation #
 
 ```
 git clone git@github.com:Virtuswap/v1-core.git
 cd v1-core
-sudo npm install -g truffle
 npm i
 ```
-Depending on your platform and setup, you may not need the `sudo`.
+
 
 # Compilation #
 ```
-truffle compile
+npx hardhat compile
 ```
 
 # Running tests #
 ```
-truffle test
+npx hardhat test
 ```

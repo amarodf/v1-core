@@ -1,16 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity 0.8.2;
 
 import "./vPair.sol";
 import "./interfaces/IvPairFactory.sol";
 import "./interfaces/IvSwapPoolDeployer.sol";
-import "./libraries/poolAddress.sol";
+import "./libraries/PoolAddress.sol";
 import "./types.sol";
 
 contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
     mapping(address => mapping(address => address)) public pairs;
     address[] public allPairs;
 
-    address public immutable override admin;
+    address public override admin;
     address public override exchangeReserves;
 
     PoolCreationDefaults public override poolCreationDefaults;
@@ -55,8 +57,8 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
             token1: token1,
             fee: 997,
             vFee: 997,
-            max_whitelist_count: 8,
-            max_reserve_ratio: 2000 * 1e18
+            maxAllowListCount: 8,
+            maxReserveRatio: 2000 * 1e18
         });
 
         bytes32 _salt = PoolAddress.getSalt(token0, token1);
@@ -68,7 +70,7 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
         pairs[token1][token0] = pair;
         allPairs.push(pair);
 
-        emit PairCreated(pair, address(this), token0, token1);
+        emit PairCreated(pair, address(this), token0, token1, 997, 997, 2000);
 
         return pair;
     }
@@ -87,7 +89,18 @@ contract vPairFactory is IvPairFactory, IvSwapPoolDeployer {
         emit ExchangeReserveAddressChanged(_exchangeReserves);
     }
 
-    function getInitCodeHash() external pure returns (bytes32) {
+    function changeAdmin(address newAdmin) external override onlyAdmin {
+        require(
+            newAdmin > address(0) && newAdmin != admin,
+            "VSWAP:INVALID_NEW_ADMIN_ADDRESS"
+        );
+
+        admin = newAdmin;
+
+        emit FactoryAdminChanged(newAdmin);
+    }
+
+    function getInitCodeHash() public pure returns (bytes32) {
         return keccak256(abi.encodePacked(type(vPair).creationCode));
     }
 }

@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity 0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,7 +10,7 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./types.sol";
 import "./vPair.sol";
 import "./base/multicall.sol";
-import "./libraries/poolAddress.sol";
+import "./libraries/PoolAddress.sol";
 import "./libraries/vSwapLibrary.sol";
 import "./interfaces/IvRouter.sol";
 import "./interfaces/IvPairFactory.sol";
@@ -18,21 +19,19 @@ import "./interfaces/external/IWETH9.sol";
 
 contract vRouter is IvRouter, Multicall {
     address public override factory;
-    address public immutable override owner;
     address public immutable override WETH9;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "VSWAP:ONLY_OWNER");
+    modifier _onlyFactoryAdmin() {
+        require(msg.sender == IvPairFactory(factory).admin(), "VSWAP:ONLY_ADMIN");
         _;
     }
 
-    modifier ensure(uint256 deadline) {
+    modifier notAfter(uint256 deadline) {
         require(deadline >= block.timestamp, "VSWAP:EXPIRED");
         _;
     }
 
     constructor(address _factory, address _WETH9) {
-        owner = msg.sender;
         WETH9 = _WETH9;
         factory = _factory;
     }
@@ -67,6 +66,23 @@ contract vRouter is IvRouter, Multicall {
             data,
             (SwapCallbackData)
         );
+
+        if (decodedData.jkPool > address(0)) {
+            //validate JK pool
+            (address jkToken0, address jkToken1) = IvPair(decodedData.jkPool)
+                .getTokens();
+
+            require(
+                msg.sender ==
+                    PoolAddress.computeAddress(factory, jkToken0, jkToken1),
+                "VSWAP:INVALID_CALLBACK_VPOOL"
+            );
+        } else
+            require(
+                msg.sender ==
+                    PoolAddress.computeAddress(factory, tokenIn, tokenOut),
+                "VSWAP:INVALID_CALLBACK_POOL"
+            );
 
         if (decodedData.jkPool > address(0)) {
             //validate JK pool
@@ -118,14 +134,14 @@ contract vRouter is IvRouter, Multicall {
         payable(to).transfer(amount);
     }
 
-    function swapToExactNative(
+    function swapExactOutput(
         address tokenIn,
         address tokenOut,
         uint256 amountOut,
         uint256 maxAmountIn,
         address to,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override notAfter(deadline) {
         getPair(tokenIn, tokenOut).swapNative(
             amountOut,
             tokenOut,
@@ -145,7 +161,37 @@ contract vRouter is IvRouter, Multicall {
         }
     }
 
-    function swapReserveToExactNative(
+    function swapExactInput(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address to,
+        uint256 deadline
+    ) external payable override notAfter(deadline) {
+        uint256 amountOut = getAmountOut(tokenIn, tokenOut, amountIn);
+        require(amountOut >= minAmountOut, "VSWAP: INSUFFICIENT_OUTPUT_AMOUNT");
+
+        getPair(tokenIn, tokenOut).swapNative(
+            amountOut,
+            tokenOut,
+            tokenOut == WETH9 ? address(this) : to,
+            abi.encode(
+                SwapCallbackData({
+                    caller: msg.sender,
+                    tokenInMax: amountIn,
+                    ETHValue: address(this).balance,
+                    jkPool: address(0)
+                })
+            )
+        );
+
+        if (tokenOut == WETH9) {
+            unwrapTransferETH(to, amountOut);
+        }
+    }
+
+    function swapReserveExactOutput(
         address tokenOut,
         address commonToken,
         address ikPair,
@@ -153,7 +199,7 @@ contract vRouter is IvRouter, Multicall {
         uint256 maxAmountIn,
         address to,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override notAfter(deadline) {
         address jkAddress = getPairAddress(tokenOut, commonToken);
 
         IvPair(jkAddress).swapReserveToNative(
@@ -164,6 +210,42 @@ contract vRouter is IvRouter, Multicall {
                 SwapCallbackData({
                     caller: msg.sender,
                     tokenInMax: maxAmountIn,
+                    ETHValue: address(this).balance,
+                    jkPool: jkAddress
+                })
+            )
+        );
+
+        if (tokenOut == WETH9) {
+            unwrapTransferETH(to, amountOut);
+        }
+    }
+
+    function swapReserveExactInput(
+        address tokenOut,
+        address commonToken,
+        address ikPair,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address to,
+        uint256 deadline
+    ) external payable override notAfter(deadline) {
+        address jkAddress = getPairAddress(tokenOut, commonToken);
+        uint256 amountOut = getVirtualAmountOut(jkAddress, ikPair, amountIn);
+
+        require(
+            amountOut >= minAmountOut,
+            "VSWAP: INSUFFICIENT_VOUTPUT_AMOUNT"
+        );
+
+        IvPair(jkAddress).swapReserveToNative(
+            amountOut,
+            ikPair,
+            tokenOut == WETH9 ? address(this) : to,
+            abi.encode(
+                SwapCallbackData({
+                    caller: msg.sender,
+                    tokenInMax: amountIn,
                     ETHValue: address(this).balance,
                     jkPool: jkAddress
                 })
@@ -196,7 +278,7 @@ contract vRouter is IvRouter, Multicall {
             pairAddress = IvPairFactory(factory).createPair(tokenA, tokenB);
 
         (uint256 reserve0, uint256 reserve1) = IvPair(pairAddress)
-            .getReserves();
+            .getBalances();
 
         if (reserve0 == 0 && reserve1 == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
@@ -242,7 +324,7 @@ contract vRouter is IvRouter, Multicall {
     )
         external
         override
-        ensure(deadline)
+        notAfter(deadline)
         returns (
             uint256 amountA,
             uint256 amountB,
@@ -286,7 +368,7 @@ contract vRouter is IvRouter, Multicall {
     )
         external
         override
-        ensure(deadline)
+        notAfter(deadline)
         returns (uint256 amountA, uint256 amountB)
     {
         address pairAddress = getPairAddress(tokenA, tokenB);
@@ -313,8 +395,8 @@ contract vRouter is IvRouter, Multicall {
 
         amountIn = vSwapLibrary.getAmountIn(
             amountOut,
-            vPool.reserve0,
-            vPool.reserve1,
+            vPool.balance0,
+            vPool.balance1,
             vPool.fee
         );
     }
@@ -323,13 +405,13 @@ contract vRouter is IvRouter, Multicall {
         address jkPair,
         address ikPair,
         uint256 amountIn
-    ) external view override returns (uint256 amountOut) {
+    ) public view override returns (uint256 amountOut) {
         VirtualPoolModel memory vPool = getVirtualPool(jkPair, ikPair);
 
         amountOut = vSwapLibrary.getAmountOut(
             amountIn,
-            vPool.reserve0,
-            vPool.reserve1,
+            vPool.balance0,
+            vPool.balance1,
             vPool.fee
         );
     }
@@ -350,71 +432,76 @@ contract vRouter is IvRouter, Multicall {
     ) external view override returns (uint256 amountOut) {
         IvPair pair = getPair(inputToken, outputToken);
 
-        (uint256 reserve0, uint256 reserve1) = pair.getReserves();
+        (uint256 balance0, uint256 balance1) = pair.getBalances();
 
-        (reserve0, reserve1) = vSwapLibrary.sortReserves(
+        (balance0, balance1) = vSwapLibrary.sortBalances(
             inputToken,
             pair.token0(),
-            reserve0,
-            reserve1
+            balance0,
+            balance1
         );
 
-        amountOut = vSwapLibrary.quote(amountIn, reserve0, reserve1);
+        amountOut = vSwapLibrary.quote(amountIn, balance0, balance1);
     }
 
     function getAmountOut(
-        address tokenA,
-        address tokenB,
+        address tokenIn,
+        address tokenOut,
         uint256 amountIn
-    ) external view virtual override returns (uint256 amountOut) {
-        IvPair pair = getPair(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1) = pair.getReserves();
+    ) public view virtual override returns (uint256 amountOut) {
+        IvPair pair = getPair(tokenIn, tokenOut);
 
-        (reserve0, reserve1) = vSwapLibrary.sortReserves(
-            tokenA,
+        (uint256 balance0, uint256 balance1) = pair.getBalances();
+
+        (balance0, balance1) = vSwapLibrary.sortBalances(
+            tokenIn,
             pair.token0(),
-            reserve0,
-            reserve1
+            balance0,
+            balance1
         );
 
         amountOut = vSwapLibrary.getAmountOut(
             amountIn,
-            reserve0,
-            reserve1,
+            balance0,
+            balance1,
             pair.fee()
         );
     }
 
     function getAmountIn(
-        address tokenA,
-        address tokenB,
+        address tokenIn,
+        address tokenOut,
         uint256 amountOut
     ) external view virtual override returns (uint256 amountIn) {
-        IvPair pair = getPair(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1) = IvPair(pair).getReserves();
+        IvPair pair = getPair(tokenIn, tokenOut);
+        (uint256 balance0, uint256 balance1) = IvPair(pair).getBalances();
 
-        (reserve0, reserve1) = vSwapLibrary.sortReserves(
-            tokenA,
+        (balance0, balance1) = vSwapLibrary.sortBalances(
+            tokenIn,
             pair.token0(),
-            reserve0,
-            reserve1
+            balance0,
+            balance1
         );
 
         amountIn = vSwapLibrary.getAmountIn(
             amountOut,
-            reserve0,
-            reserve1,
+            balance0,
+            balance1,
             pair.fee()
         );
     }
 
-    function changeFactory(address _factory) external override onlyOwner {
+    function changeFactory(address _factory)
+        external
+        override
+        _onlyFactoryAdmin
+    {
         require(
             _factory > address(0) && _factory != factory,
             "VSWAP:INVALID_FACTORY"
         );
         factory = _factory;
 
-        emit FactoryChanged(_factory);
+        emit RouterFactoryChanged(_factory);
     }
 }
