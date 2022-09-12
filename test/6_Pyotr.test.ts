@@ -549,6 +549,49 @@ describe("Pyotr tests", () => {
   });
 
   it("Test 15: Exchange reserves AB <-> CD", async() => {
-    
-  })
+
+    const abPool = fixture.abPool;
+    const cdPool = fixture.bcPool;
+    const tokenA = fixture.tokenA;
+    const tokenC = fixture.tokenC;
+
+    let amountAInReserve = await cdPool.reserves(tokenA.address);
+
+    let data = utils.getEncodedExchangeReserveCallbackParams(
+      cdPool.address, //jk1
+      abPool.address, //jk2
+      cdPool.address //ik2
+    );
+
+    let aReserveInBC = await cdPool.reserves(tokenA.address);
+    let cReserveInAB = await abPool.reserves(tokenC.address);
+    let poolABRR = await abPool.calculateReserveRatio();
+
+    let tokenAReserveBaseValue = await cdPool.reservesBaseValue(tokenA.address);
+    let tokenCReserveBaseValue = await abPool.reservesBaseValue(tokenC.address);
+
+    let poolBCRR = await cdPool.calculateReserveRatio();
+
+    //get flash swap of amount required amount C from pool BC.
+    await fixture.exchageReserveInstance.exchange(
+      cdPool.address, //jk1
+      abPool.address, // ik1
+      abPool.address, //jk2
+      amountAInReserve,
+      data
+    );
+
+    let tokenAReserveBaseValueAfter = await cdPool.reservesBaseValue(
+      tokenA.address
+    );
+    let tokenCReserveBaseValueAfter = await abPool.reservesBaseValue(
+      tokenC.address
+    );
+
+    let aReserveInBCAfter = await cdPool.reserves(tokenA.address);
+    let cReserveInABAfter = await abPool.reserves(tokenC.address);
+    let poolABRRAfter = await abPool.calculateReserveRatio();
+
+    let poolBCRRAfter = await cdPool.calculateReserveRatio();
+  });
 });
