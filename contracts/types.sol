@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity 0.8.2;
 
 struct VirtualPoolModel {
     uint24 fee;
     address token0;
     address token1;
-    uint256 reserve0;
-    uint256 reserve1;
+    uint256 balance0;
+    uint256 balance1;
     address commonToken;
 }
 
@@ -35,6 +37,6 @@ struct PoolCreationDefaults {
     address token1;
     uint24 fee;
     uint24 vFee;
-    uint24 max_whitelist_count;
-    uint256 max_reserve_ratio;
+    uint24 maxAllowListCount;
+    uint256 maxReserveRatio;
 }

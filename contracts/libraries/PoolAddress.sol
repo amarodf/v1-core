@@ -1,12 +1,11 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.2;
+// SPDX-License-Identifier: Apache-2.0
 
-import "../interfaces/IvPairFactory.sol";
+pragma solidity 0.8.2;
 
 /// @title Provides functions for deriving a pool address from the factory and token
 library PoolAddress {
     bytes32 internal constant POOL_INIT_CODE_HASH =
-        0x09d1fe79f85fd38a38ea7ed730f2b0a5998a29a91452fd455a45b08c83884439;
+        0x5e2c53146a5dae93216e921083c77cff22430a938b441d1d1e4754f93a3d1f3f;
 
     function orderAddresses(address tokenA, address tokenB)
         internal
