@@ -102,6 +102,29 @@ async function createPool(
   return pool;
 }
 
+function calculateNativeAmountOut(
+  amountSell: number, 
+  amountBuy: number, 
+  amountIn: number, 
+  tradingFee: number
+  ): number{
+  return +amountBuy - (+amountBuy * +amountSell) / (+amountSell + amountIn * (1 - tradingFee));
+}
+
+function calculateReserveAmountOut(
+  amountReserve: number,
+  amountSellInPool: number,
+  amountSellInNativePool: number,
+  amountBuyInPool: number,
+  amountReserveInNative: number,
+  tradingFee: number
+  ): number{
+    const amountSell = Math.min(amountSellInNativePool, amountSellInPool);
+    const leftSide = amountBuyInPool * amountSell / amountSellInPool;
+    const rightSide = amountReserveInNative * amountSell / amountSellInNativePool;
+    return leftSide - (leftSide * rightSide) / (+rightSide + +amountReserve * (1 - tradingFee));
+}
+
 describe("Pyotr tests", () => {
   let accounts: any = [];
   let fixture: any = {};
@@ -201,6 +224,8 @@ describe("Pyotr tests", () => {
     );
     await acPool.setAllowList([fixture.tokenB.address]);
 
+    fixture.acPool = acPool;
+
     const lp_tokens_gained_in_wei = await acPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
@@ -288,7 +313,7 @@ describe("Pyotr tests", () => {
     );
     const lp_tokens_should_be_gained = Math.sqrt(AInput * DInput);
     const difference = Math.abs(lp_tokens_gained - lp_tokens_should_be_gained);
-    //  expect(difference).lessThan(EPS);
+    expect(difference).lessThan(EPS);
   });
 
   it("Test 5: Complex Swap A --> D", async () => {
@@ -301,10 +326,6 @@ describe("Pyotr tests", () => {
     const amountInAD = ethers.utils.parseEther("4");
     const amountInBD = ethers.utils.parseEther("2");
 
-    const tokenABalanceBefore = await tokenA.balanceOf(owner.address);
-    const tokenBBalanceBefore = await tokenB.balanceOf(owner.address);
-    const tokenDBalanceBefore = await tokenD.balanceOf(owner.address);
-
     const vRouterInstance = fixture.vRouterInstance;
 
     const abPool = fixture.abPool;
@@ -314,11 +335,13 @@ describe("Pyotr tests", () => {
     const tokenAPoolABBalanceBefore = await tokenA.balanceOf(abPool.address);
     const tokenAPoolADBalanceBefore = await tokenA.balanceOf(adPool.address);
     const tokenAPoolBDBalanceBefore = await tokenA.balanceOf(bdPool.address);
+    const tokenBPoolABBalanceBefore = await tokenB.balanceOf(abPool.address);
 
     const tokenDPoolABBalanceBefore = await tokenD.balanceOf(abPool.address);
     const tokenDPoolADBalanceBefore = await tokenD.balanceOf(adPool.address);
     const tokenDPoolBDBalanceBefore = await tokenD.balanceOf(bdPool.address);
-    console.log(tokenAPoolABBalanceBefore);
+
+    const tokenBPoolBDBalanceBefore = await tokenB.balanceOf(bdPool.address);
 
     const futureTs = await utils.getFutureBlockTimestamp();
 
@@ -356,26 +379,55 @@ describe("Pyotr tests", () => {
     const tokenDPoolADBalanceAfter = await tokenD.balanceOf(adPool.address);
     const tokenDPoolBDBalanceAfter = await tokenD.balanceOf(bdPool.address);
 
-    //  const differenceAinAB = tokenAPoolABBalanceAfter - tokenAPoolABBalanceBefore
-    //  const differenceAinAD = tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore
-    // const differenceAinBD = tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore
-    // const differenceDinAB = tokenDPoolABBalanceAfter - tokenDPoolABBalanceBefore
+    const mathAmountOut0 = calculateNativeAmountOut(
+      ethers.utils.formatEther(tokenAPoolADBalanceBefore),
+      ethers.utils.formatEther(tokenDPoolADBalanceBefore),
+      ethers.utils.formatEther(amountInAD.toString()),
+      1 - Number(fixture.abFee) / 1000
+    );
 
-    const differenceDinAD = (
-      tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore
-    ).toString();
-    // const differenceDinAD_Tokens = ethers.utils.formatEther(differenceDinAD)
-    // const amountOutAD_Tokens = ethers.utils.formatEther()
+    console.log(ethers.utils.formatEther(amountInBD.toString()))
 
-    // const differenceDinBD = tokenDPoolBDBalanceAfter - tokenDPoolBDBalanceBefore*/
+    const mathAmountOut1 = calculateReserveAmountOut(
+      ethers.utils.formatEther(amountInBD.toString()),
+      ethers.utils.formatEther(tokenBPoolBDBalanceBefore),
+      ethers.utils.formatEther(tokenBPoolABBalanceBefore),
+      ethers.utils.formatEther(tokenDPoolBDBalanceBefore),
+      ethers.utils.formatEther(tokenAPoolABBalanceBefore),
+      1 - Number(fixture.bdFee) / 1000
+    );
 
-    //   const differenceDinAD = _differenceDinAD.toString()
+    const differenceA = +ethers.utils.formatEther(amountInAD.toString()) + +ethers.utils.formatEther(amountInBD.toString());
 
-    console.log("NUMBERS");
-    console.log(differenceDinAD);
-    console.log(ethers.utils.formatEther(differenceDinAD));
-    //  console.log(amountOutAD)
-    //  console.log(ethers.utils.formatEther(amountOutAD))
+    const differenceAinAD = Math.abs(tokenAPoolADBalanceAfter - tokenAPoolADBalanceBefore)
+    const differenceAinBD = Math.abs(tokenAPoolBDBalanceAfter - tokenAPoolBDBalanceBefore)
+    const differenceDinBD = Math.abs(tokenDPoolBDBalanceAfter - tokenDPoolBDBalanceBefore)
+
+    const differenceDinAD = Math.abs(tokenDPoolADBalanceAfter - tokenDPoolADBalanceBefore)
+
+    const AinAD = ethers.utils.formatEther(differenceAinAD.toString())
+    const DoutAD = ethers.utils.formatEther(differenceDinAD.toString())
+    const AinBD = ethers.utils.formatEther(differenceAinBD.toString())
+    const DoutBD = ethers.utils.formatEther(differenceDinBD.toString())
+    
+    const AOut = ethers.utils.formatEther(differenceA.toString())
+    
+    const checkD0 = Math.abs(DoutAD - mathAmountOut0)
+    const checkA0 = Math.abs(AinAD - ethers.utils.formatEther(amountInAD.toString()))
+    const checkD1 = Math.abs(DoutBD - mathAmountOut1)
+    const checkA1 = Math.abs(AinBD - ethers.utils.formatEther(amountInBD.toString()))
+    const checkA2 = Math.abs(differenceA - AinBD - AinAD)
+    
+    expect(checkD0).to.be.lessThan(EPS)
+    expect(checkA0).to.be.lessThan(EPS)
+    expect(checkD1).to.be.lessThan(EPS)
+    expect(checkA1).to.be.lessThan(EPS)
+    expect(checkA2).to.be.lessThan(EPS)
+
+
+    console.log("Amount out AD = %f", DoutAD)
+    console.log("Amount out BD = %f", DoutBD)
+
   });
 
   it("Test 6: Complex Swap D --> B, should fail as D is not in whitelist", async () => {
@@ -408,19 +460,28 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
-    str = await swapInNativePool(
+    str = await swapInReservePool(
       vRouterInstance,
       owner,
-      tokenD,
+      abPool,
+      adPool,
       tokenA,
+      tokenB,
       amountInAB,
       futureTs
     );
     multiData.push(str);
+    
+    let fail = false;
+    try{
+      await vRouterInstance.multicall(multiData, false);
+    } catch(ex: any){
+      console.log(ex.message.indexOf("TNW"))
+      expect(ex.message.indexOf("TMV") > -1)
+      fail = true;
+    }
 
-    await expect(vRouterInstance.multicall(multiData, false)).to.revertedWith(
-      "TNW"
-    );
+    expect(fail).to.be.true;
   });
 
   it("Test 7: Complex Swap A --> B", async () => {
@@ -517,9 +578,17 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
-    expect(await vRouterInstance.multicall(multiData, false)).to.rejectedWith(
-      "TBPT"
-    );
+    let fail = false;
+    try{
+      await vRouterInstance.multicall(multiData, false);
+    } catch(ex: any){
+      console.log(ex.message.indexOf("TBPT"))
+      expect(ex.message.indexOf("TBPT") > -1)
+      fail = true;
+    }
+
+    expect(fail).to.be.true;
+
   });
 
   it("Test 9: Initial Liquidity Proivsion for C/D", async () => {
@@ -556,7 +625,7 @@ describe("Pyotr tests", () => {
   });
 
   it("Test 10: Complex Swap C --> B, should fail as assets are going to zero-zero native pool and as reserve ratio becomes higher than threshold", async () => {
-    console.log("Not working, for additional info -- read comments");
+    console.log("Test #10 is not working, for additional info -- read comments");
     // This test is not implementable due to the way pools are organized
     // (we can't address to zero-zero pools as we create pools in the moment of liquidity provision)
   });
@@ -624,6 +693,23 @@ describe("Pyotr tests", () => {
 
     let BInput = 100;
     let DInput = 150;
+
+    const amounDBDesired = await vRouterInstance.quote(
+      tokenB.address,
+      tokenD.address,
+      DInput
+    );
+
+    console.log(amounDBDesired)
+
+    const amountDDesired = await vRouterInstance.quote(
+      tokenB.address,
+      tokenD.address,
+      BInput
+    );
+
+    console.log(amountDDesired)
+
 
     await vRouterInstance.addLiquidity(
       tokenB.address,
