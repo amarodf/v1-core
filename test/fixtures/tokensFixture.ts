@@ -1,11 +1,5 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
-import {
-  ERC20PresetFixedSupply__factory,
-  VPairFactory__factory,
-  VRouter__factory,
-  WETH9__factory,
-} from "../../typechain-types/index";
 
 // We define a fixture to reuse the same setup in every test.
 // We use loadFixture to run this setup once, snapshot that state,
@@ -39,7 +33,9 @@ export async function tokensFixture() {
   const C_PRICE = 6;
   const D_PRICE = 9;
 
-  const erc20ContractFactory = await new ERC20PresetFixedSupply__factory(owner);
+  const erc20ContractFactory = await ethers.getContractFactory(
+    "ERC20PresetFixedSupply"
+  );
   const tokenA = await erc20ContractFactory.deploy(
     "tokenA",
     "A",
@@ -66,23 +62,24 @@ export async function tokensFixture() {
     owner.address
   );
 
-  const vPairFactoryInstance = await new VPairFactory__factory(
-    VPairFactory__factory.createInterface(),
-    VPairFactory__factory.bytecode,
-    owner
-  ).deploy();
+  const vPairFactoryFactory = await ethers.getContractFactory("VPairFactory");
+  const vPairFactoryInstance = await vPairFactoryFactory.deploy();
 
-  const WETH9Instance = await new WETH9__factory(
-    WETH9__factory.createInterface(),
-    WETH9__factory.bytecode,
-    owner
-  ).deploy();
+  const WETH9Factory = await ethers.getContractFactory("WETH9");
+  const WETH9Instance = await WETH9Factory.deploy();
 
-  const vRouterInstance = await new VRouter__factory(
-    VRouter__factory.createInterface(),
-    VRouter__factory.bytecode,
-    owner
-  ).deploy(vPairFactoryInstance.address, WETH9Instance.address);
+  const vRouterFactory = await ethers.getContractFactory("vRouter");
+  const vRouterInstance = await vRouterFactory.deploy(
+    vPairFactoryInstance.address,
+    WETH9Instance.address
+  );
+
+  const vExchangeReservesFactory = await ethers.getContractFactory(
+    "vExchangeReserves"
+  );
+  const vExchangeReservesInstance = await vExchangeReservesFactory.deploy(
+    vPairFactoryInstance.address
+  );
 
   await tokenA.approve(vRouterInstance.address, issueAmount);
   await tokenB.approve(vRouterInstance.address, issueAmount);
@@ -99,6 +96,7 @@ export async function tokensFixture() {
     C_PRICE,
     D_PRICE,
     vRouterInstance,
+    vExchangeReservesInstance,
     owner,
     accounts: [
       account1,
