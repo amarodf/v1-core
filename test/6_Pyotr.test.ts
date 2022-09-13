@@ -165,6 +165,7 @@ describe("Pyotr tests", () => {
     const account5 = fixture.accounts[4];
     await tokenB.transfer(account5.address, 100);
     await tokenD.transfer(account5.address, 150);
+
   });
 
   it("Test 1: Intital Liquidity Provision for A/B", async () => {
@@ -750,32 +751,28 @@ describe("Pyotr tests", () => {
     let BInput = ethers.utils.parseEther("100");
     let DInput = ethers.utils.parseEther("150");
 
-    const amounDBDesired = await vRouterInstance.quote(
-      tokenB.address,
+    const amountBDesired = await vRouterInstance.quote(
       tokenD.address,
+      tokenB.address,
       DInput
     );
 
-    const amountDDesired = await vRouterInstance.quote(
-      tokenB.address,
-      tokenD.address,
-      BInput
-    );
 
-/*
+    console.log(ethers.utils.formatEther(amountBDesired))
+
 
     await vRouterInstance.addLiquidity(
       tokenB.address,
       tokenD.address,
-      ethers.utils.parseEther(BInput.toString()),
+      ethers.utils.parseEther(amountBDesired),
       ethers.utils.parseEther(DInput.toString()),
-      ethers.utils.parseEther(BInput.toString()),
+      ethers.utils.parseEther(amountBDesired),
       ethers.utils.parseEther(DInput.toString()),
       trader.address,
       await utils.getFutureBlockTimestamp()
     );
 
-    const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
+ /*   const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
       ethers.utils.formatEther(lp_tokens_gained_in_wei)
     );
@@ -789,11 +786,11 @@ describe("Pyotr tests", () => {
     const tokenD = fixture.tokenD;
     const trader = fixture.accounts[2];
     const bdPool = fixture.bdPool;
-  
-
-    const withdrawAmount = ethers.utils.formatEther("200")
-
     const vRouterInstance = fixture.vRouterInstance;
+
+    const withdrawAmount = ethers.utils.parseEther("200")
+    await bdPool.approve(vRouterInstance.address, ethers.utils.parseEther("10000000000000000000"));
+
 
     const futureTs = await utils.getFutureBlockTimestamp();
     await vRouterInstance.removeLiquidity(
