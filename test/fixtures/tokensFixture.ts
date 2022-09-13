@@ -62,7 +62,7 @@ export async function tokensFixture() {
     owner.address
   );
 
-  const vPairFactoryFactory = await ethers.getContractFactory("VPairFactory");
+  const vPairFactoryFactory = await ethers.getContractFactory("vPairFactory");
   const vPairFactoryInstance = await vPairFactoryFactory.deploy();
 
   const WETH9Factory = await ethers.getContractFactory("WETH9");
