@@ -767,9 +767,12 @@ describe("Pyotr tests", () => {
 
     //const bdPoolPreviousAmount = tokenB.bala
 
+    let tokenDBalance = await tokenD.balanceOf(bdPool.address);
+    let tokenBBalance = await tokenB.balanceOf(bdPool.address);
+    console.log("tokenDBalance " + ethers.utils.formatEther(tokenDBalance));
+    console.log("tokenBBalance " + ethers.utils.formatEther(tokenBBalance));
     const vRouterInstance = fixture.vRouterInstance;
 
-    let BInput = ethers.utils.parseEther("100");
     let DInput = ethers.utils.parseEther("150");
 
     const amountBDesired = await vRouterInstance.quote(
@@ -778,15 +781,19 @@ describe("Pyotr tests", () => {
       DInput
     );
 
+    console.log(
+      "for 150D get " + ethers.utils.formatEther(amountBDesired) + "B"
+    );
+
     console.log(ethers.utils.formatEther(amountBDesired));
 
     await vRouterInstance.addLiquidity(
       tokenB.address,
       tokenD.address,
       amountBDesired,
-      ethers.utils.parseEther(DInput.toString()),
+      DInput,
       amountBDesired,
-      ethers.utils.parseEther(DInput.toString()),
+      DInput,
       trader.address,
       await utils.getFutureBlockTimestamp()
     );
@@ -891,11 +898,11 @@ describe("Pyotr tests", () => {
     const tokenC = fixture.tokenC;
 
     let amountAInReserve = await cdPool.balanceOf(tokenA.address);
-   
+
     await fixture.vPairFactoryInstance.setExchangeReservesAddress(
       fixture.vExchangeReservesInstance.address
     );
-    
+
     let data = utils.getEncodedExchangeReserveCallbackParams(
       cdPool.address, //jk1
       abPool.address, //jk2
