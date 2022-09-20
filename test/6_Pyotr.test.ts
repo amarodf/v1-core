@@ -767,12 +767,12 @@ describe("Pyotr tests", () => {
 
     //const bdPoolPreviousAmount = tokenB.bala
 
+    let tokenDBalance = await tokenD.balanceOf(bdPool.address);
+    let tokenBBalance = await tokenB.balanceOf(bdPool.address);
+    console.log("tokenDBalance " + ethers.utils.formatEther(tokenDBalance));
+    console.log("tokenBBalance " + ethers.utils.formatEther(tokenBBalance));
     const vRouterInstance = fixture.vRouterInstance;
 
-    console.log(tokenB.balanceOf(trader.address))
-    console.log(tokenD.balanceOf(trader.address))
-
-    let BInput = ethers.utils.parseEther("100");
     let DInput = ethers.utils.parseEther("150");
 
     const amountBDesired = await vRouterInstance.quote(
@@ -781,21 +781,22 @@ describe("Pyotr tests", () => {
       DInput
     );
 
-    console.log(ethers.utils.formatEther(amountBDesired));
-    const amountBMin = ethers.utils.parseEther("98") 
+    console.log(
+      "for 150D get " + ethers.utils.formatEther(amountBDesired) + "B"
+    );
 
-    let str = await vRouterInstance.addLiquidity(
+    console.log(ethers.utils.formatEther(amountBDesired));
+
+    await vRouterInstance.addLiquidity(
       tokenB.address,
       tokenD.address,
-      amountBMin,
+      amountBDesired,
       DInput,
-      amountBMin,
+      amountBDesired,
       DInput,
       trader.address,
       await utils.getFutureBlockTimestamp()
     );
-
-    multidata.pus
 
     /*   const lp_tokens_gained_in_wei = await bdPool.balanceOf(trader.address);
     const lp_tokens_gained = Number(
@@ -897,14 +898,11 @@ describe("Pyotr tests", () => {
     const tokenC = fixture.tokenC;
 
     let amountAInReserve = await cdPool.balanceOf(tokenA.address);
-    let amointCInReserve = await abPool.reservesBaseValue(tokenC.address);
-   
-    console.log(ethers.utils.formatEther(amountAInReserve))
-    console.log(ethers.utils.formatEther(amointCInReserve))
+
     await fixture.vPairFactoryInstance.setExchangeReservesAddress(
       fixture.vExchangeReservesInstance.address
     );
-    
+
     let data = utils.getEncodedExchangeReserveCallbackParams(
       cdPool.address, //jk1
       abPool.address, //jk2
@@ -953,14 +951,6 @@ describe("Pyotr tests", () => {
       fixture.cdPool,
     ];
     const poolNames = ["AB", "AC", "AD", "BD", "CD"];
-    const fees = [
-      fixture.abFee,
-      fixture.acFee,
-      fixture.adFee,
-      fixture.bcFee,
-      fixture.bdFee,
-      fixture.cdFee
-    ]
     const tokens = [
       fixture.tokenA,
       fixture.tokenB,
@@ -976,33 +966,8 @@ describe("Pyotr tests", () => {
           "\tToken %s amount: %f",
           tokenNames[j],
           ethers.utils.formatEther(await tokens[j].balanceOf(pools[i].address))
-        );  
+        );
       }
-      console.log("\n")
-
-      console.log(1 - Number(fees[i]) / 1000)
-      for (let j = 0; j < 4; ++j){
-        let isNative = poolNames[i].indexOf(tokenNames[j]) > -1;
-        if(!isNative){
-          let reservedAmount = await pools[i].reservesBaseValue(tokens[j].address);
-          if (reservedAmount > EPS * EPS){
-            console.log(
-              "\tToken %s, reserved ratio: %f",
-              tokenNames[j],
-              ethers.utils.formatEther(reservedAmount)
-            );
-            let tmp = await tokens[j].balanceOf(pools[i].address);
-
-            let tmp2 = ethers.utils.formatEther(tmp)
-            console.log(tmp2)
-          } 
-        }
-      }
-      
-      console.log("\tTotal Pools reserve ratio: %f", await pools[i].calculateReserveRatio())
-
-      console.log("\n");
-
       for (let j = 0; j < 5; ++j) {
         console.log(
           "\tTrader %i, LP tokens amount: %f",
@@ -1012,7 +977,7 @@ describe("Pyotr tests", () => {
           )
         );
       }
-
+      console.log();
     }
   });
 });
