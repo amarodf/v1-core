@@ -97,7 +97,7 @@ async function createPool(
 
   const pool = VPair__factory.connect(abAddress, owner);
   await pool.setFee(fee, fee);
-  await pool.setMaxReserveThreshold(ethers.utils.parseEther("2000"));
+  await pool.setMaxReserveThreshold(ethers.utils.parseEther("4000"));
 
   return pool;
 }
@@ -919,9 +919,9 @@ describe("Pyotr tests", () => {
     //    let poolBCRR = await cdPool.calculateReserveRatio();
 
     //get flash swap of amount required amount C from pool BC.
-    await fixture.vExchangeReservesInstance.exchange(
-      cdPool.address, //jk1
-      abPool.address, // ik1
+      await fixture.vExchangeReservesInstance.exchange(
+        cdPool.address, //jk1
+        abPool.address, // ik1
       abPool.address, //jk2
       amountAInReserve,
       data
@@ -941,6 +941,7 @@ describe("Pyotr tests", () => {
     // let poolBCRRAfter = await cdPool.calculateReserveRatio();
   });
 
+
   after(async function () {
     console.log("TABLES");
     const pools = [
@@ -958,6 +959,14 @@ describe("Pyotr tests", () => {
       fixture.tokenD,
     ];
     const tokenNames = ["A", "B", "C", "D"];
+    const fees = [
+      fixture.abFee,
+      fixture.acFee,
+      fixture.adFee,
+      fixture.bcFee,
+      fixture.bdFee,
+      fixture.cdFee
+    ]
 
     for (let i = 0; i < 5; i++) {
       console.log("Pool %s", poolNames[i]);
@@ -966,7 +975,31 @@ describe("Pyotr tests", () => {
           "\tToken %s amount: %f",
           tokenNames[j],
           ethers.utils.formatEther(await tokens[j].balanceOf(pools[i].address))
-        );
+          );  
+        }
+        console.log("\n")
+  
+        console.log(1 - Number(fees[i]) / 1000)
+        for (let j = 0; j < 4; ++j){
+          let isNative = poolNames[i].indexOf(tokenNames[j]) > -1;
+          if(!isNative){
+            let reservedAmount = await pools[i].reservesBaseValue(tokens[j].address);
+            if (reservedAmount > EPS * EPS){
+              console.log(
+                "\tToken %s, reserved ratio: %f",
+                tokenNames[j],
+                ethers.utils.formatEther(reservedAmount)
+              );
+              let tmp = await tokens[j].balanceOf(pools[i].address);
+  
+              let tmp2 = ethers.utils.formatEther(tmp)
+              console.log(tmp2)
+            }
+          }
+  
+        console.log("\tTotal Pools reserve ratio: %f", await pools[i].calculateReserveRatio())
+  
+        console.log("\n");
       }
       for (let j = 0; j < 5; ++j) {
         console.log(
@@ -979,5 +1012,6 @@ describe("Pyotr tests", () => {
       }
       console.log();
     }
+    
   });
 });
