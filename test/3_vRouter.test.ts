@@ -77,6 +77,34 @@ describe("vRouter", () => {
     expect(amountOutEth).to.equal(395);
   });
 
+  it("amountOut should get smaller with bigger amountIn", async () => {
+    const tokenA = fixture.tokenA;
+    const tokenB = fixture.tokenB;
+    const vRouterInstance = fixture.vRouterInstance;
+
+    let amountIn = ethers.utils.parseEther("100");
+
+    let amountOut = await vRouterInstance.getAmountOut(
+      tokenA.address,
+      tokenB.address,
+      amountIn
+    );
+
+    amountOut = parseFloat(ethers.utils.formatEther(amountOut));
+
+    let amountIn2 = ethers.utils.parseEther("1000");
+
+    let amountOut2 = await vRouterInstance.getAmountOut(
+      tokenA.address,
+      tokenB.address,
+      amountIn2
+    );
+
+    amountOut2 = parseFloat(ethers.utils.formatEther(amountOut2));
+
+    expect(amountOut2).to.be.below(amountOut * 10);
+  });
+
   it("Should calculate virtual pool A/C using B/C as oracle", async () => {
     const abPool = fixture.abPool;
     const bcPool = fixture.bcPool;
