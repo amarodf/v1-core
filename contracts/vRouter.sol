@@ -279,8 +279,8 @@ contract vRouter is IvRouter, Multicall {
             } else {
                 uint256 amountAOptimal = vSwapLibrary.quote(
                     amountBDesired,
-                    reserve1,
-                    reserve0
+                    reserve0,
+                    reserve1
                 );
 
                 assert(amountAOptimal <= amountADesired);

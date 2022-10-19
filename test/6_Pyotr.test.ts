@@ -763,7 +763,7 @@ describe("Pyotr tests", () => {
 
     let DInput = ethers.utils.parseEther("150");
 
-    const amountBDesired = await vRouterInstance.quote(
+    let amountBDesired = await vRouterInstance.quote(
       tokenD.address,
       tokenB.address,
       DInput
@@ -773,17 +773,24 @@ describe("Pyotr tests", () => {
       "for 150D get " + ethers.utils.formatEther(amountBDesired) + "B"
     );
 
-    let minAmountB =
-      parseFloat(ethers.utils.formatEther(amountBDesired)) * 0.98;
-    let minAmountBWei = ethers.utils.parseEther(minAmountB.toString());
+    console.log("amountB desired " + ethers.utils.formatEther(amountBDesired));
+
+    // address tokenA,
+    // address tokenB,
+    // uint256 amountADesired,
+    // uint256 amountBDesired,
+    // uint256 amountAMin,
+    // uint256 amountBMin,
+    // address to,
+    // uint256 deadline
 
     await vRouterInstance.addLiquidity(
-      tokenB.address,
       tokenD.address,
+      tokenB.address,
+      DInput,
       amountBDesired,
       DInput,
-      minAmountBWei,
-      DInput,
+      amountBDesired,
       trader.address,
       await utils.getFutureBlockTimestamp()
     );
