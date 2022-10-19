@@ -53,6 +53,8 @@ async function swapInReservePool(
     amountIn
   );
 
+  console.log("amountOut " + ethers.utils.formatEther(amountOut));
+
   let str = await VRouter__factory.getInterface(
     VRouter__factory.abi
   ).encodeFunctionData("swapReserveExactOutput", [
@@ -474,9 +476,6 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
-
- 
-
     let fail = false;
     try {
       await vRouterInstance.multicall(multiData, false);
@@ -583,54 +582,33 @@ describe("Pyotr tests", () => {
     const tokenD = fixture.tokenD;
     const owner = fixture.owner;
 
-    const amountInAB = ethers.utils.parseEther("6");
-    const amountInBD = ethers.utils.parseEther("4");
-
-    const tokenABalanceBefore = await tokenA.balanceOf(owner.address);
-    const tokenBBalanceBefore = await tokenB.balanceOf(owner.address);
-    const tokenDBalanceBefore = await tokenD.balanceOf(owner.address);
+    const amountInBD = ethers.utils.parseEther("4000000000");
 
     const vRouterInstance = fixture.vRouterInstance;
 
     const abPool = fixture.abPool;
-    const adPool = fixture.adPool;
     const bdPool = fixture.bdPool;
 
     const futureTs = await utils.getFutureBlockTimestamp();
 
-    let multiData = [];
-
-    let str = await swapInNativePool(
-      vRouterInstance,
-      owner,
-      tokenA,
-      tokenB,
-      amountInAB,
-      futureTs
+    let vAmountOut = await vRouterInstance.getVirtualAmountOut(
+      bdPool.address,
+      abPool.address,
+      amountInBD
     );
-    multiData.push(str);
-
-    await vRouterInstance.multicall(multiData, false);
-
-    let multi2 = [];
-
-    str = await swapInReservePool(
-      vRouterInstance,
-      owner,
-      bdPool,
-      adPool,
-      tokenD,
-      tokenB,
-      amountInBD,
-      futureTs
-    );
-    multi2.push(str);
 
     let fail = false;
     try {
-      await vRouterInstance.multicall(multi2, false);
+      await vRouterInstance.swapReserveExactInput(
+        tokenD.address,
+        tokenB.address,
+        abPool.address,
+        amountInBD,
+        vAmountOut,
+        owner.address,
+        futureTs
+      );
     } catch (ex: any) {
-      console.log(ex.message.indexOf("TBPT"));
       expect(ex.message.indexOf("TBPT") > -1);
       fail = true;
     }
@@ -763,8 +741,8 @@ describe("Pyotr tests", () => {
       (tokenBPoolBDBalanceBefore - tokenBPoolBDBalanceAfter).toString()
     );
 
-    console.log("Amount out AD = %f", differenceInAB);
-    console.log("Amount out BD = %f", differenceInBD);
+    // console.log("Amount out AD = %f", differenceInAB);
+    // console.log("Amount out BD = %f", differenceInBD);
     expect(Math.abs(differenceInAB - mathAmountOut0)).to.be.lessThan(EPS);
     expect(Math.abs(differenceInBD - mathAmountOut1)).to.be.lessThan(EPS);
   });
@@ -795,14 +773,16 @@ describe("Pyotr tests", () => {
       "for 150D get " + ethers.utils.formatEther(amountBDesired) + "B"
     );
 
-    console.log(ethers.utils.formatEther(amountBDesired));
+    let minAmountB =
+      parseFloat(ethers.utils.formatEther(amountBDesired)) * 0.98;
+    let minAmountBWei = ethers.utils.parseEther(minAmountB.toString());
 
     await vRouterInstance.addLiquidity(
       tokenB.address,
       tokenD.address,
       amountBDesired,
       DInput,
-      amountBDesired,
+      minAmountBWei,
       DInput,
       trader.address,
       await utils.getFutureBlockTimestamp()
@@ -897,7 +877,7 @@ describe("Pyotr tests", () => {
       (tokenCPoolCDBalanceBefore - tokenCPoolCDBalanceAfter).toString()
     );
 
-    console.log("Amount out CD = %f", differenceInCD);
+    // console.log("Amount out CD = %f", differenceInCD);
     expect(Math.abs(differenceInCD - mathAmountOut0)).to.be.lessThan(EPS);
   });
 
