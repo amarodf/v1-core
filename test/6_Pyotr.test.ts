@@ -460,6 +460,8 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
+    let rr = await abPool.calculateReserveRatio();
+    console.log("#888 rr " + rr);
     str = await swapInReservePool(
       vRouterInstance,
       owner,
@@ -472,6 +474,9 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
+
+ 
+
     let fail = false;
     try {
       await vRouterInstance.multicall(multiData, false);
@@ -480,7 +485,8 @@ describe("Pyotr tests", () => {
       expect(ex.message.indexOf("TMV") > -1);
       fail = true;
     }
-
+    let rr2 = await abPool.calculateReserveRatio();
+    console.log("#888 rr2 " + rr2);
     expect(fail).to.be.true;
   });
 
@@ -604,6 +610,10 @@ describe("Pyotr tests", () => {
     );
     multiData.push(str);
 
+    await vRouterInstance.multicall(multiData, false);
+
+    let multi2 = [];
+
     str = await swapInReservePool(
       vRouterInstance,
       owner,
@@ -614,11 +624,11 @@ describe("Pyotr tests", () => {
       amountInBD,
       futureTs
     );
-    multiData.push(str);
+    multi2.push(str);
 
     let fail = false;
     try {
-      await vRouterInstance.multicall(multiData, false);
+      await vRouterInstance.multicall(multi2, false);
     } catch (ex: any) {
       console.log(ex.message.indexOf("TBPT"));
       expect(ex.message.indexOf("TBPT") > -1);
@@ -919,9 +929,9 @@ describe("Pyotr tests", () => {
     //    let poolBCRR = await cdPool.calculateReserveRatio();
 
     //get flash swap of amount required amount C from pool BC.
-      await fixture.vExchangeReservesInstance.exchange(
-        cdPool.address, //jk1
-        abPool.address, // ik1
+    await fixture.vExchangeReservesInstance.exchange(
+      cdPool.address, //jk1
+      abPool.address, // ik1
       abPool.address, //jk2
       amountAInReserve,
       data
@@ -940,7 +950,6 @@ describe("Pyotr tests", () => {
 
     // let poolBCRRAfter = await cdPool.calculateReserveRatio();
   });
-
 
   after(async function () {
     console.log("TABLES");
@@ -965,8 +974,8 @@ describe("Pyotr tests", () => {
       fixture.adFee,
       fixture.bcFee,
       fixture.bdFee,
-      fixture.cdFee
-    ]
+      fixture.cdFee,
+    ];
 
     for (let i = 0; i < 5; i++) {
       console.log("Pool %s", poolNames[i]);
@@ -975,30 +984,35 @@ describe("Pyotr tests", () => {
           "\tToken %s amount: %f",
           tokenNames[j],
           ethers.utils.formatEther(await tokens[j].balanceOf(pools[i].address))
-          );  
-        }
-        console.log("\n")
-  
-        console.log(1 - Number(fees[i]) / 1000)
-        for (let j = 0; j < 4; ++j){
-          let isNative = poolNames[i].indexOf(tokenNames[j]) > -1;
-          if(!isNative){
-            let reservedAmount = await pools[i].reservesBaseValue(tokens[j].address);
-            if (reservedAmount > EPS * EPS){
-              console.log(
-                "\tToken %s, reserved ratio: %f",
-                tokenNames[j],
-                ethers.utils.formatEther(reservedAmount)
-              );
-              let tmp = await tokens[j].balanceOf(pools[i].address);
-  
-              let tmp2 = ethers.utils.formatEther(tmp)
-              console.log(tmp2)
-            }
+        );
+      }
+      console.log("\n");
+
+      console.log(1 - Number(fees[i]) / 1000);
+      for (let j = 0; j < 4; ++j) {
+        let isNative = poolNames[i].indexOf(tokenNames[j]) > -1;
+        if (!isNative) {
+          let reservedAmount = await pools[i].reservesBaseValue(
+            tokens[j].address
+          );
+          if (reservedAmount > EPS * EPS) {
+            console.log(
+              "\tToken %s, reserved ratio: %f",
+              tokenNames[j],
+              ethers.utils.formatEther(reservedAmount)
+            );
+            let tmp = await tokens[j].balanceOf(pools[i].address);
+
+            let tmp2 = ethers.utils.formatEther(tmp);
+            console.log(tmp2);
           }
-  
-        console.log("\tTotal Pools reserve ratio: %f", await pools[i].calculateReserveRatio())
-  
+        }
+
+        console.log(
+          "\tTotal Pools reserve ratio: %f",
+          await pools[i].calculateReserveRatio()
+        );
+
         console.log("\n");
       }
       for (let j = 0; j < 5; ++j) {
@@ -1012,6 +1026,5 @@ describe("Pyotr tests", () => {
       }
       console.log();
     }
-    
   });
 });
