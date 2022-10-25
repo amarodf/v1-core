@@ -2,13 +2,36 @@ const Web3 = require("web3");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const vRouterJson = require("../build/contracts/vRouter.json");
 const TestnetERC20Json = require("../build/contracts/TestnetERC20.json");
+const mysql = require("mysql");
+const _ = require("lodash");
 
 var polygonProvider = new HDWalletProvider(
-  "2fcdf6468c4a3eb0504953064d670b685ccbd99a3a9f845070bcdc1d4fe831d4",
+  "4cd4d069ecb10b4a5ff6e194976b6cdbd04e307d670e6bf4f455556497b4a63b",
   `https://morning-twilight-cherry.matic-testnet.quiknode.pro/6ba9d2c5b8a046814b28f974c3643c679914f7ff/`
 );
 
+const con = mysql.createConnection({
+  host: "45.77.163.160",
+  user: "backend",
+  password: "13wue@yQp2Ax",
+});
+
+async function queryDB(sql) {
+  return new Promise((resolve, rej) => {
+    con.query(sql, function (err, result) {
+      if (err) {
+        console.log(err);
+        rej(err);
+      }
+
+      resolve(result);
+    });
+  });
+}
+
 const polygonWeb3 = new Web3(polygonProvider);
+const adminAddress = "0x5eA409399e47F0Df9FAC47488A4010bfD04718a4";
+const router = "0x9990a157EDdd671Fc57b596b5F3e6C5fAe5FbDb7";
 
 async function getFutureBlockTimestamp() {
   const blockNumber = await polygonWeb3.eth.getBlockNumber();
@@ -16,101 +39,79 @@ async function getFutureBlockTimestamp() {
   return block.timestamp + 1000000;
 }
 
-let pools = [
-  {
-    //MATIC/CRV
-    tokenA: "0x5451A9e85a498A0De15C4eE8A5f78b93CB720Dae",
-    tokenB: "0x5f0aB2fB11898E0A26E2047Bc28d7479D9469a5F",
-    balance0: "1000000",
-    balance1: "797300",
-  },
-  {
-    //MATIC/USDC
-    tokenA: "0x5451A9e85a498A0De15C4eE8A5f78b93CB720Dae",
-    tokenB: "0x028977DB66AbEdF1C1F3dEF461cc55e02322D29a",
-    balance0: "1000000",
-    balance1: "828200",
-  },
-  {
-    //MATIC/WETH
-    tokenA: "0x5451A9e85a498A0De15C4eE8A5f78b93CB720Dae",
-    tokenB: "0x4E4968c01924c5B7d5F71E2648011DA92dd6503E",
-    balance0: "1000000",
-    balance1: "514.14",
-  },
-  {
-    //USDC/ETH
-    tokenA: "0x028977DB66AbEdF1C1F3dEF461cc55e02322D29a",
-    tokenB: "0x4E4968c01924c5B7d5F71E2648011DA92dd6503E",
-    balance0: "1000000",
-    balance1: "632.9113",
-  },
-  {
-    //USDC/CRV
-    tokenA: "0x028977DB66AbEdF1C1F3dEF461cc55e02322D29a",
-    tokenB: "0x5f0aB2fB11898E0A26E2047Bc28d7479D9469a5F",
-    balance0: "1000000",
-    balance1: "967300",
-  },
-  {
-    //WETH/CRV
-    tokenA: "0x4E4968c01924c5B7d5F71E2648011DA92dd6503E",
-    tokenB: "0x5f0aB2fB11898E0A26E2047Bc28d7479D9469a5F",
-    balance0: "653.59477",
-    balance1: "1000000",
-  },
-];
-
-polygonWeb3.eth.getAccounts().then(async (accounts) => {
-  let router = "0xee8353d520b8AA0fCE89da2175DC6FC778d3072E";
+async function createPool(tokenA, tokenB, liq0, liq1) {
+  let accounts = await polygonWeb3.eth.getAccounts();
   let sendArgs = { from: accounts[0], gasPrice: 35000000000 };
 
   const vRouterInstance = new polygonWeb3.eth.Contract(vRouterJson.abi, router);
-  let adminAddress = "0x5eA409399e47F0Df9FAC47488A4010bfD04718a4";
   let futureTs = await getFutureBlockTimestamp();
-  for (let i = 0; i < pools.length; i++) {
-    let pool = pools[i];
 
-    const tokenAInstance = new polygonWeb3.eth.Contract(
-      TestnetERC20Json.abi,
-      pool.tokenA
-    );
+  const tokenAInstance = new polygonWeb3.eth.Contract(
+    TestnetERC20Json.abi,
+    tokenA
+  );
 
-    const tokenBInstance = new polygonWeb3.eth.Contract(
-      TestnetERC20Json.abi,
-      pool.tokenB
-    );
+  const tokenBInstance = new polygonWeb3.eth.Contract(
+    TestnetERC20Json.abi,
+    tokenB
+  );
 
-    await tokenAInstance.methods
-      .approve(
-        router,
-        polygonWeb3.utils.toWei("999999999999999999999999999999", "ether")
+  await tokenAInstance.methods
+    .approve(
+      router,
+      polygonWeb3.utils.toWei("999999999999999999999999999999", "ether")
+    )
+    .send(sendArgs);
+
+  await tokenBInstance.methods
+    .approve(
+      router,
+      polygonWeb3.utils.toWei("999999999999999999999999999999", "ether")
+    )
+    .send(sendArgs);
+  try {
+    let tx = await vRouterInstance.methods
+      .addLiquidity(
+        tokenA,
+        tokenB,
+        polygonWeb3.utils.toWei(liq0.toString(), "ether"),
+        polygonWeb3.utils.toWei(liq1.toString(), "ether"),
+        polygonWeb3.utils.toWei(liq0.toString(), "ether"),
+        polygonWeb3.utils.toWei(liq1.toString(), "ether"),
+        adminAddress,
+        futureTs
       )
       .send(sendArgs);
-
-    await tokenBInstance.methods
-      .approve(
-        router,
-        polygonWeb3.utils.toWei("999999999999999999999999999999", "ether")
-      )
-      .send(sendArgs);
-    try {
-      let tx = await vRouterInstance.methods
-        .addLiquidity(
-          pool.tokenA,
-          pool.tokenB,
-          polygonWeb3.utils.toWei(pool.balance0, "ether"),
-          polygonWeb3.utils.toWei(pool.balance1, "ether"),
-          polygonWeb3.utils.toWei(pool.balance0, "ether"),
-          polygonWeb3.utils.toWei(pool.balance1, "ether"),
-          adminAddress,
-          futureTs
-        )
-        .send(sendArgs);
-    } catch (ex) {
-      console.log(ex);
-    }
-
-    console.log("created pool: " + i + " out of " + pools.length);
+  } catch (ex) {
+    console.log(ex);
   }
+}
+
+async function run() {
+  //get tokens
+
+  let tokens = await queryDB("SELECT * from vswap.tokens");
+
+  //get testnet_pools
+  let testnet_pools = await queryDB("SELECT * from vswap.testnet_pools");
+
+  //foreach call createPool
+  for (let i = 12; i < testnet_pools.length; i++) {
+    let pool = testnet_pools[i];
+
+    let asset0 = _.find(tokens, (t) => {
+      return t.symbol == pool.asset0;
+    });
+
+    let asset1 = _.find(tokens, (t) => {
+      return t.symbol == pool.asset1;
+    });
+
+    await createPool(asset0.address, asset1.address, pool.liq0, pool.liq1);
+    let a = 5;
+  }
+}
+
+run().then((a) => {
+  console.log(a);
 });
