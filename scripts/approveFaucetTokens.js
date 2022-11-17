@@ -1,33 +1,55 @@
 const TestnetERC20Json = require("../build/contracts/TestnetERC20.json");
 const Web3 = require("web3");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-require("dotenv").config();
-const fs = require("fs");
+const mysql = require("mysql");
 
-let tokens = [
-  "0x5451A9e85a498A0De15C4eE8A5f78b93CB720Dae",
-  "0x028977DB66AbEdF1C1F3dEF461cc55e02322D29a",
-  "0x4E4968c01924c5B7d5F71E2648011DA92dd6503E",
-  "0x5f0aB2fB11898E0A26E2047Bc28d7479D9469a5F",
-];
+const con = mysql.createConnection({
+  host: "45.77.163.160",
+  user: "backend",
+  password: "13wue@yQp2Ax",
+});
+
+async function queryDB(sql) {
+  return new Promise((resolve, rej) => {
+    con.query(sql, function (err, result) {
+      if (err) {
+        console.log(err);
+        rej(err);
+      }
+
+      resolve(result);
+    });
+  });
+}
 
 var polygonProvider = new HDWalletProvider(
-  "cb1228f06f7be4b34f31554492643fb439c4ebe27c8be1029cda1523a4745f6a",
+  "e54c2a00a06b318911488e40fb1c744c58fb20ada0509c32d86cb4d79206ee41",
   `https://morning-twilight-cherry.matic-testnet.quiknode.pro/6ba9d2c5b8a046814b28f974c3643c679914f7ff/`
 );
 
 const polygonWeb3 = new Web3(polygonProvider);
 
 async function run() {
+  let tokens = await queryDB(`SELECT address FROM vswap.tokens;`);
+
   let accounts = await polygonWeb3.eth.getAccounts();
+  let nonce = await polygonWeb3.eth.getTransactionCount(accounts[0]);
   for (let i = 0; i < tokens.length; i++) {
-    const pair = new polygonWeb3.eth.Contract(TestnetERC20Json.abi, tokens[i]);
-    await pair.methods
-      .approve(
-        "0xF5704Fb2159664b36a8055468a0102F26fbe8D18",
-        polygonWeb3.utils.toWei("10000000000000000000", "ether")
-      )
-      .send({ from: accounts[0] });
+    const pair = new polygonWeb3.eth.Contract(
+      TestnetERC20Json.abi,
+      tokens[i].address
+    );
+    try {
+      let tx = await pair.methods
+        .approve(
+          "0x1e3D868A2c24343aFb4D0A418597A7931D98EC49",
+          polygonWeb3.utils.toWei("1000000000000000000000000", "ether")
+        )
+        .send({ from: accounts[0] });
+      let a = 5;
+    } catch (ex) {
+      console.log(ex);
+    }
   }
 }
 

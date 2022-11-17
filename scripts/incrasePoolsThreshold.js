@@ -7,7 +7,7 @@ const mysql = require("mysql");
 const _ = require("lodash");
 
 var polygonProvider = new HDWalletProvider(
-  "2fcdf6468c4a3eb0504953064d670b685ccbd99a3a9f845070bcdc1d4fe831d4",
+  "5f1921c54bfa4a4cc3f9ffee097bedc5c69e72d1cd3481e3bb82b1f8fe927641",
   `https://morning-twilight-cherry.matic-testnet.quiknode.pro/6ba9d2c5b8a046814b28f974c3643c679914f7ff/`
 );
 
@@ -32,25 +32,21 @@ async function queryDB(sql) {
 const polygonWeb3 = new Web3(polygonProvider);
 
 async function run() {
-  let tokens = await queryDB("SELECT * from vswap.tokens");
-
   let pools = await queryDB("SELECT * from vswap.pools");
 
   let accounts = await polygonWeb3.eth.getAccounts();
   let sendArgs = { from: accounts[0], gasPrice: 35000000000 };
 
-  for (let i = 31; i < i < pools.length; i++) {
+  for (let i = 0; i < i < pools.length; i++) {
     const pool = new polygonWeb3.eth.Contract(
       vPairJson.abi,
       pools[i].poolAddress
     );
 
-    let wlTokens = _.map(tokens, "address"); // → [1, 2]
-    wlTokens = _.filter(wlTokens, (t) => {
-      return t.address != pools[i].token0 && t.address != pools[i].token1;
-    });
-    await pool.methods.setMaxAllowListCount(wlTokens.length).send(sendArgs);
-    await pool.methods.setAllowList(wlTokens).send(sendArgs);
+    let currentThreshold = await pool.methods.maxReserveRatio().call();
+    let setReserve = await pool.methods
+      .setMaxReserveThreshold(polygonWeb3.utils.toWei("13000", "ether"))
+      .send(sendArgs);
   }
 }
 

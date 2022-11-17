@@ -96,7 +96,7 @@ async function run() {
   let testnet_pools = await queryDB("SELECT * from vswap.testnet_pools");
 
   //foreach call createPool
-  for (let i = 12; i < testnet_pools.length; i++) {
+  for (let i = 32; i < testnet_pools.length; i++) {
     let pool = testnet_pools[i];
 
     let asset0 = _.find(tokens, (t) => {
@@ -113,5 +113,5 @@ async function run() {
 }
 
 run().then((a) => {
-  console.log(a);
+    console.log(a);
 });
