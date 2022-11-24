@@ -7,8 +7,7 @@ library PoolAddress {
     //local 0x5e2c53146a5dae93216e921083c77cff22430a938b441d1d1e4754f93a3d1f3f
     //mumbai 0x501ab8b57f651e35036ffa4e1e289a76d14924a4b6201272ac3800e7959700cd
     bytes32 internal constant POOL_INIT_CODE_HASH =
-        0x501ab8b57f651e35036ffa4e1e289a76d14924a4b6201272ac3800e7959700cd;
-
+        0x0d7432fe9be5ae9dc10f69ff3eb4d80e8adbbfc7b4a4fdc25820c6fb11a091dd;
 
     function orderAddresses(address tokenA, address tokenB)
         internal
